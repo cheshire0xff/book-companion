@@ -5,17 +5,19 @@ A local book library managed with GitHub Copilot in VS Code. The Copilot skill h
 ## One-time setup
 
 1. Open the `book_companion` directory as the VS Code workspace root.
-2. Put your PowerShell converter at `tools/epub_to_txt.ps1`. The converter is user-provided; it is not included here. It accepts `-InputFile`, `-OutputFile`, and optional `-Force`. Make sure PowerShell (`pwsh`, or `powershell.exe` on Windows) is available.
+2. The PowerShell converter is included at `tools/epub_to_txt.ps1`. It accepts `-InputFile`, `-OutputFile`, and optional `-Force`. Each conversion produces the requested TXT file plus a sibling `<name>-html/` directory. `-Force` replaces both outputs. Make sure PowerShell (`pwsh`, or `powershell.exe` on Windows) is available.
 3. Open **Copilot Chat** in **Agent** mode. Type `/` and look for `book-companion`. You can invoke it explicitly with `/book-companion`. If it does not appear, start a new chat and check that the skill is at `.github/skills/book-companion/SKILL.md` and that its frontmatter `name` is `book-companion`.
 
 ## Import a book
 
 1. Copy the EPUB into `_incoming/epubs/`.
 2. In Copilot Chat, ask: **`/book-companion Import the EPUB in _incoming/epubs/.`**
-3. The agent identifies the title, author, series and volume from the EPUB metadata/front matter, chooses a destination, moves the EPUB there as `source.epub`, converts it using `tools/epub_to_txt.ps1`, checks the TXT, and creates metadata and reading-progress files.
+3. The agent identifies the title and author from the EPUB metadata/front matter, checks reliable bibliographic web sources for missing or ambiguous series/volume information, chooses a destination, moves the EPUB there as `source.epub`, converts it using `tools/epub_to_txt.ps1`, checks `book.txt` and `book-html/`, and creates metadata and reading-progress files.
 4. Check the reported destination and any uncertain bibliographic details.
 
-You do not need to name the author or series yourself unless the EPUB does not provide enough evidence to identify them.
+You usually do not need to provide bibliographic details yourself. If the EPUB, front matter, and reliable web sources still do not establish the series or volume, the agent will ask you rather than guess.
+
+Each imported book keeps `book.txt` for full-text search and extraction, plus `book-html/` for structural checks such as chapter order and boundaries. The HTML package contains separate XHTML documents and related package files. If TXT headings are ambiguous because of a table of contents or repeated markers, the agent should use that output to verify narrative order while respecting your spoiler boundary; it must not inspect later chapter titles or content.
 
 ## Keep your reading progress current
 

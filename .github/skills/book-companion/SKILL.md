@@ -33,7 +33,7 @@ book_companion/
 │       └── book-companion/
 │           └── SKILL.md
 ├── tools/
-│   └── epub_to_txt.ps1            # user-provided EPUB-to-TXT converter
+│   └── epub_to_txt.ps1            # EPUB-to-TXT and HTML converter
 ├── _incoming/
 │   ├── epubs/
 │   └── images/
@@ -45,9 +45,10 @@ book_companion/
             │   └── <volume>-<book-slug>/
             │       ├── source.epub
             │       ├── book.txt
+            │       ├── book-html/             # generated HTML and related files
             │       ├── metadata.md
             │       ├── reading-progress.md
-            │       └── summary.md         # create only after the user finishes
+            │       └── summary.md             # create only after the user finishes
             ├── characters/
             │   └── <character-slug>/
             │       ├── description.md
@@ -65,7 +66,7 @@ book_companion/
 ### Layout rules
 
 - The user may simply place an EPUB in `_incoming/epubs/` and ask you to import it. They should not have to provide its author, title, series, or destination path when those can be established from the file.
-- Keep each book's source EPUB and converted TXT inside that book's directory. Move the incoming EPUB there during import; do not leave a second copy in `_incoming/epubs/`.
+- Keep each book's source EPUB, converted TXT, and generated HTML package inside that book's directory. Move the incoming EPUB there during import; do not leave a second copy in `_incoming/epubs/`.
 - Put characters, locations, factions, and recurring objects at the series level when they belong to the wider series. Create only the directories needed for actual content; the example tree is not a checklist of folders to create.
 - For a standalone novel, use `books/<author-slug>/standalone/<book-slug>/` for the book and put any book-specific entities alongside it, for example under `entities/characters/` and `entities/locations/`. Do not invent a series.
 - If a character or location appears in multiple books in a series, maintain one shared profile. Record which book and chapter support each fact. Do not use information from unread books to update the profile.
@@ -90,8 +91,9 @@ When the user provides an EPUB or asks you to import one, perform the following 
    - edition or language;
    - ISBN, if present.
 5. Distinguish original publication information from the particular edition represented by the EPUB. Do not silently combine them.
-6. Do not read ahead into the story to identify metadata. Prefer bibliographic metadata and front matter. If a series cannot be established without plot research, leave it unknown or ask the user.
-7. External lookup may be used only when needed to verify bibliographic details. Keep it narrowly focused on title, author, series, volume, edition, and ISBN. Do not read plot summaries, reviews, wiki pages, character pages, or other material that could spoil the book.
+6. Do not read story content to identify bibliographic details. Prefer the EPUB's metadata and front matter.
+7. When series or volume information is missing or ambiguous, use a narrow web lookup based on the exact ISBN, title, and author. Prefer the publisher's official book or series page and the author's official bibliography; use library catalog records to corroborate when needed. Treat retailer and aggregator records as secondary, and never rely on search-result snippets alone. Record source URLs, dates checked, and any conflicts in `metadata.md`. Keep lookups limited to bibliographic facts; do not read plot summaries, reviews, wiki pages, character pages, or other material that could spoil the book.
+8. If the EPUB, front matter, and reasonable web lookup still do not establish the series or volume, ask the user to confirm them before choosing a series directory. Record the answer as user-confirmed. Do not infer a series from the title or default to volume 1. If the user cannot confirm, leave the fields unknown and ask how they want the book filed rather than guessing.
 
 ### 3.2 Choose the destination
 
@@ -99,12 +101,12 @@ When the user provides an EPUB or asks you to import one, perform the following 
 2. If it exists, compare the files and metadata. Do not overwrite existing files or create a duplicate without explaining the situation.
 3. If it is a series book, use `books/<author-slug>/<series-slug>/books/<volume>-<book-slug>/`.
 4. If it is standalone, use the standalone layout described above.
-5. If series membership or volume order is uncertain, record the uncertainty in `metadata.md` and ask the user if the directory choice cannot safely be made.
+5. If series membership or volume order remains uncertain after the lookup and user fallback in section 3.1, do not choose a definitive series directory. Keep the EPUB in `_incoming/epubs/` until the user clarifies how to file it.
 6. Preserve the original EPUB byte-for-byte. Move the incoming EPUB into the destination as `source.epub`; do not make a second copy. Verify the moved file exists and has a plausible size. If the destination is still uncertain, leave the EPUB in `_incoming/epubs/` and ask the user. If a `source.epub` already exists, do not overwrite it; investigate the duplicate or edition and ask if needed.
 
-### 3.3 Convert EPUB to TXT
+### 3.3 Convert EPUB to TXT and HTML
 
-Use the user-provided PowerShell script at `tools/epub_to_txt.ps1`. Do not invoke Calibre directly and do not implement another converter unless the user explicitly asks you to.
+Use the PowerShell script at `tools/epub_to_txt.ps1`. Each conversion creates both `book.txt` and a sibling `book-html/` directory containing Calibre's XHTML documents and related package files. Keep the TXT for full-text search and extraction; use the separate XHTML documents and package metadata as a structural reference for reading order and chapter boundaries. Do not invoke Calibre directly and do not implement another converter unless the user explicitly asks you to.
 
 The documented interface is:
 
@@ -112,7 +114,7 @@ The documented interface is:
 .\tools\epub_to_txt.ps1 -InputFile .\source.epub -OutputFile .\book.txt
 ```
 
-The script accepts `-InputFile`, `-OutputFile`, and `-Force`. Use the PowerShell executable available in the environment (normally `pwsh`; on Windows, `powershell.exe` may also be available). For example:
+The script accepts `-InputFile`, `-OutputFile`, and `-Force`. `-Force` replaces both the TXT file and its generated HTML directory. Use it only when the user explicitly authorizes replacing those outputs. Use the PowerShell executable available in the environment (normally `pwsh`; on Windows, `powershell.exe` may also be available). For example:
 
 ```powershell
 pwsh -NoProfile -File tools/epub_to_txt.ps1 -InputFile '<book-directory>/source.epub' -OutputFile '<book-directory>/book.txt'
@@ -122,7 +124,7 @@ Before invoking it:
 
 1. Confirm that `tools/epub_to_txt.ps1` exists.
 2. Use the documented parameter names exactly. Quote paths, especially paths containing spaces.
-3. Do not pass `-Force` during normal import. The output should not exist yet; if it already exists, inspect it and resolve the conflict rather than overwriting it. Use `-Force` only when the user explicitly authorizes replacing an existing TXT.
+3. Do not pass `-Force` during normal import. Neither output should exist yet; if either already exists, inspect it and resolve the conflict rather than overwriting it. Use `-Force` only when the user explicitly authorizes replacing the TXT and HTML outputs.
 4. Do not modify the script itself unless the user asks you to.
 
 After conversion:
@@ -131,7 +133,7 @@ After conversion:
 - Ensure the TXT is readable as UTF-8. If conversion produces an unexpected encoding or garbled text, report the issue and inspect the script's documented options before making changes.
 - Preserve chapter headings, chapter order, paragraph boundaries, scene breaks, and meaningful front/back matter as well as the supplied converter allows.
 - Do not remove or rewrite prose, normalize the author's style, or summarize during conversion.
-- Perform a basic sanity check: the output exists, is non-empty, begins with plausible book content, and contains later chapter headings or other evidence that the conversion did not truncate the book.
+- Perform a basic sanity check: `book.txt` exists, is non-empty, begins with plausible book content, and contains later chapter headings or other evidence that the conversion did not truncate the book. Also confirm `book-html/` exists and contains at least one non-empty HTML file.
 - If the script or a usable PowerShell interpreter is missing, do not silently substitute another conversion method. Tell the user exactly what is missing and ask them to provide/install it or authorize an alternative.
 - If the script fails, report the actual error and do not mark the import as complete. Do not silently fall back to Calibre or another tool.
 
@@ -152,18 +154,19 @@ Create `metadata.md` with known information and label unknown fields explicitly:
 - ISBN:
 - Source EPUB: source.epub
 - Converted text: book.txt
+- Converted HTML: book-html/
 - Import status: imported
 
 ## Metadata notes
 
-- Record discrepancies, uncertain fields, and how they were resolved.
+- Record discrepancies, uncertain fields, source URLs and dates checked, and how each field was resolved.
 ```
 
 Create `reading-progress.md` using the format in the spoiler-protection section below. Set the initial state to **not started**. Do not assume that importing a book means the user has read any of it.
 
 Only create `series.md` when it has a useful purpose. It can record neutral series-level bibliographic facts and, after the user has read enough material, spoiler-safe world information. Do not use it as a place to dump plot information from unread books.
 
-The EPUB should already have been moved into its final book directory before conversion. After conversion, verify that both `source.epub` and `book.txt` exist and that the TXT is non-empty and plausible. The import is complete only after these checks and the import notes are written. Do not leave an extra EPUB copy in `_incoming/epubs/`. If conversion fails, keep `source.epub` in the final directory, leave the import marked incomplete, report the error, and do not move or delete the EPUB as a cleanup step.
+The EPUB should already have been moved into its final book directory before conversion. After conversion, verify that `source.epub`, `book.txt`, and `book-html/` exist; the TXT must be non-empty and plausible, and the HTML directory must contain at least one non-empty HTML file. The import is complete only after these checks and the import notes are written. Do not leave an extra EPUB copy in `_incoming/epubs/`. If either conversion fails, keep `source.epub` in the final directory, leave the import marked incomplete, report the error, and do not move or delete the EPUB as a cleanup step.
 
 ## 4. Spoiler protection and reading progress
 
@@ -210,12 +213,13 @@ Before answering a question about the story, a character, a location, a faction,
 
 1. Read the relevant book's `reading-progress.md`.
 2. Identify the safe-through chapter.
-3. Search and inspect only text at or before that boundary.
-4. Do not inspect later chapters to check whether a guess is correct.
-5. Do not use external sources for fictional-world information. They commonly contain spoilers and may mix canon with fan interpretation.
-6. If the text conversion has no reliable chapter boundaries, stop and explain the limitation. Do not perform an unrestricted search across the full TXT and hope not to notice spoilers.
-7. If the relevant information has not appeared by the checkpoint, say that it has not been established in the material the user has read. Do not hint that something is revealed later.
-8. When referring to evidence, give the book and chapter. Give a physical page only if it is explicitly available and verified for the user's edition.
+3. When TXT headings or a table of contents make chapter boundaries ambiguous, use `book-html/` as a structural reference. Follow its XHTML documents and, when available, navigation or package metadata in reading order to distinguish front matter or TOC entries from narrative chapters. Inspect only through the safe boundary; do not dump later filenames/titles or inspect later chapter content.
+4. Search and inspect only text at or before that boundary.
+5. Do not inspect later chapters to check whether a guess is correct.
+6. Do not use external sources for fictional-world information. They commonly contain spoilers and may mix canon with fan interpretation.
+7. If neither `book-html/` nor `book.txt` provides reliable chapter boundaries, stop and explain the limitation. Do not perform an unrestricted search across the full TXT and hope not to notice spoilers.
+8. If the relevant information has not appeared by the checkpoint, say that it has not been established in the material the user has read. Do not hint that something is revealed later.
+9. When referring to evidence, give the book and chapter. Give a physical page only if it is explicitly available and verified for the user's edition.
 
 Instructions in this file reduce accidental spoilers but are not a hard technical security boundary: the agent may have filesystem access to the complete TXT. Follow the retrieval rules deliberately. Never claim that later text is technically inaccessible unless the environment actually enforces that restriction.
 
@@ -422,7 +426,7 @@ Interpret updates conservatively:
 
 User: "Import this EPUB."
 
-Action: inspect metadata and front matter, identify the book, determine the safest destination, move the incoming EPUB there as `source.epub`, convert with `tools/epub_to_txt.ps1 -InputFile ... -OutputFile ...` using PowerShell, verify both files, create `metadata.md` and `reading-progress.md`, and report the result. Ask only if author/series/volume cannot be determined reliably.
+Action: inspect metadata and front matter, identify the book, determine the safest destination, move the incoming EPUB there as `source.epub`, convert with `tools/epub_to_txt.ps1 -InputFile ... -OutputFile ...` using PowerShell, verify `source.epub`, `book.txt`, and `book-html/`, create `metadata.md` and `reading-progress.md`, and report the result. Ask only if author/series/volume cannot be determined reliably.
 
 ### Ask about a character
 
