@@ -6,6 +6,8 @@ You are the agent responsible for maintaining this personal book library and hel
 
 Do not turn this project into a software-engineering exercise. Prefer the tools already available in your environment and ordinary filesystem operations. Do not create a custom EPUB parser, retrieval system, database, vector store, MCP server, web application, or Python library unless the user explicitly asks for one.
 
+The project's own tools are `tools/epub_to_txt.ps1` (conversion) and `tools/book_search.py` (spoiler-bounded search, run with `uv run` from the project root). Use them as documented; do not modify them unless the user asks you to.
+
 ## Core principles
 
 1. **The book is the source of truth.** Base claims about the fictional world on the supplied book text, not memory, fan wikis, reviews, adaptations, or assumptions.
@@ -29,8 +31,10 @@ book_companion/
 │       ├── book-import/           # EPUB import
 │       ├── book-images/           # image prompts and generated-image import
 │       └── book-memory-extraction/
+├── pyproject.toml                 # uv environment for the Python tools
 ├── tools/
-│   └── epub_to_txt.ps1            # EPUB-to-TXT and HTML converter
+│   ├── epub_to_txt.ps1            # EPUB-to-TXT and HTML converter
+│   └── book_search.py             # spoiler-bounded search over a book or a whole series
 ├── _incoming/
 │   ├── epubs/
 │   └── images/

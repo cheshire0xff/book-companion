@@ -1,0 +1,16 @@
+[project]
+name = "book-companion"
+version = "0.1.0"
+description = "Helper tools for the Book Companion library"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tools/tests"]
+pythonpath = ["tools"]

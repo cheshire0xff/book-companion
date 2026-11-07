@@ -21,7 +21,7 @@ Related skills:
 When the user asks about a character, location, faction, object, event, or setting detail:
 
 1. Check the reading checkpoint first, following `spoiler-rules.md`.
-2. Search the relevant book text only up to the safe boundary.
+2. Search the relevant text only up to the safe boundary, with `tools/book_search.py` as described in `spoiler-rules.md`. For a series, search the series directory so earlier books count too.
 3. Read enough surrounding text to understand context. Do not rely on an isolated keyword hit when it could be misleading.
 4. Answer the actual question directly, before any supporting detail. Do not produce a long lore essay unless requested.
 5. Separate the answer into clearly labelled categories when useful:
@@ -64,7 +64,7 @@ Rules:
 
 ## 3. Updating reading progress
 
-When the user reports progress ("I've finished chapter 18", "I'm on page 247", "I finished the book"), update that book's `reading-progress.md` following the "Recording progress" rules in `spoiler-rules.md`, set `Last updated`, and tell the user the new safe-through boundary.
+When the user reports progress ("I've finished chapter 18", "I'm on page 247", "I finished the book"), update the front matter of that book's `reading-progress.md` following the "Recording progress" rules in `spoiler-rules.md`, and set `updated`. Then run `uv run tools/book_search.py check <book-dir>` and tell the user the boundary it reports.
 
 ## 4. Summaries and reading notes
 
@@ -80,7 +80,7 @@ The sibling **`book-memory-extraction`** skill (`.github/skills/book-memory-extr
 
 When the spoiler gate is satisfied:
 
-1. Confirm or record `Status: finished` in `reading-progress.md`.
+1. Confirm or record `status: finished` in the front matter of `reading-progress.md`.
 2. Invoke `book-memory-extraction` (or read its `SKILL.md` and follow it if it cannot be invoked). Do not recreate its process or substitute your own summary outline.
 3. Give it the book's `book.txt` path and bibliographic metadata, and explicitly request **Markdown output at `<book-directory>/summary.md`**. That skill otherwise defaults to plain-text `summary.txt`.
 4. Preserve any additional memory files or artifacts that the extraction skill produces. Do not flatten or discard its structure just to fit this example.

@@ -22,7 +22,7 @@ Do not automate the ChatGPT website or browser to submit prompts, extract genera
 ## 1. Preparing a prompt
 
 1. Check the reading checkpoint.
-2. Retrieve relevant passages only from safe chapters.
+2. Retrieve relevant passages only from safe chapters, with `tools/book_search.py` as described in `spoiler-rules.md`.
 3. Check the entity's existing `description.md` and existing pictures/prompts for continuity.
 4. Collect the visual facts explicitly stated in the book.
 5. Identify reasonable inferences separately.

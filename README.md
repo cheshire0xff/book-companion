@@ -14,8 +14,9 @@ You can also just ask in plain language; the agent picks the skill from its desc
 
 1. Open the `book_companion` directory as the VS Code workspace root.
 2. The PowerShell converter is included at `tools/epub_to_txt.ps1`. It accepts `-InputFile`, `-OutputFile`, and optional `-Force`. Each conversion produces the requested TXT file plus a sibling `<name>-html/` directory. `-Force` replaces both outputs. Make sure PowerShell (`pwsh`, or `powershell.exe` on Windows) is available.
-3. **Copilot:** open **Copilot Chat** in **Agent** mode and type `/` to see the skills. If one does not appear, start a new chat and check that its `SKILL.md` frontmatter `name` matches its folder name.
-4. **Claude Code:** it reads skills from `.claude/skills/`, not `.github/skills/`. Link the two once from the project root (a directory junction needs no admin rights), then start a new session:
+3. Install [uv](https://docs.astral.sh/uv/) and run `uv sync` once in the project root. This creates the Python environment for `tools/book_search.py`, the spoiler-bounded search the agent uses for story questions. Run its tests with `uv run pytest`.
+4. **Copilot:** open **Copilot Chat** in **Agent** mode and type `/` to see the skills. If one does not appear, start a new chat and check that its `SKILL.md` frontmatter `name` matches its folder name.
+5. **Claude Code:** it reads skills from `.claude/skills/`, not `.github/skills/`. Link the two once from the project root (a directory junction needs no admin rights), then start a new session:
 
    ```powershell
    New-Item -ItemType Directory -Force .claude | Out-Null
@@ -40,8 +41,9 @@ After a reading session, tell the agent (`/book-companion`) what you have comple
 - `I finished chapter 18.`
 - `I'm partway through chapter 19; last completed chapter is 18. I'm on physical page 247.`
 - `I've finished the book.`
+- `I finished Book Two, chapter 5.` (for books whose chapter numbering restarts in each part; the import tells you when that applies)
 
-The agent records this in that book's `reading-progress.md`. The last completed chapter is the normal spoiler boundary. Physical page numbers are useful context, but do not reliably map to EPUB/TXT positions. If you only provide a page number, the agent may ask which chapter you have completed before researching the story.
+The agent records this in the small `---` block at the top of that book's `reading-progress.md` (`status`, `chapter`, and `part` when numbering restarts per part). The rest of the file is free-form notes. The last completed chapter is the normal spoiler boundary. Physical page numbers are useful context, but do not reliably map to EPUB/TXT positions. If you only provide a page number, the agent may ask which chapter you have completed before researching the story.
 
 ## Ask about the book
 
@@ -52,6 +54,18 @@ Examples:
 - `Remind me what this faction is and where it has appeared.`
 
 The agent should check the reading checkpoint first, use the book text only through that boundary, and distinguish details stated in the book from inference. Do not rely on external wikis for story lore.
+
+The agent searches with `tools/book_search.py`. Pointed at a series directory, it searches every book in the series, each up to its own `reading-progress.md`: finished books fully, the current book up to your boundary, unstarted books not at all. It never returns text past that, including later chapter titles from a book's contents page. You can use it yourself too:
+
+```powershell
+uv run tools/book_search.py search   books/christopher-ruocchio/sun-eater "Valka" --word --count
+uv run tools/book_search.py search   books/christopher-ruocchio/sun-eater "Valka" --book 1 --chapter 46
+uv run tools/book_search.py read     books/christopher-ruocchio/sun-eater --book 1 --chapter 46
+uv run tools/book_search.py chapters books/christopher-ruocchio/sun-eater
+uv run tools/book_search.py check    books/christopher-ruocchio/sun-eater   # structure report, no titles
+```
+
+`--book/--chapter` narrows the search to an earlier story point. Anything past your progress is refused unless `--allow-spoilers` is added, which the agent does only when you've explicitly allowed it. `--help` explains chapters, parts and sections.
 
 ## Generate an image with ChatGPT
 
@@ -87,8 +101,11 @@ book_companion/
 │       ├── book-images/
 │       └── book-memory-extraction/
 ├── .claude/skills/             # junction to .github/skills (Claude Code only)
+├── pyproject.toml, uv.lock     # uv environment for the Python tools
 ├── tools/
-│   └── epub_to_txt.ps1         # EPUB-to-TXT and HTML converter
+│   ├── epub_to_txt.ps1         # EPUB-to-TXT and HTML converter
+│   ├── book_search.py          # spoiler-bounded search over a book or a whole series
+│   └── tests/
 ├── _incoming/
 │   ├── epubs/                  # EPUBs waiting to be imported
 │   └── images/                 # ChatGPT image downloads waiting to be imported

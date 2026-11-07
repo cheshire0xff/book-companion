@@ -81,7 +81,7 @@ Create `metadata.md` with known information and label unknown fields explicitly:
 - Record discrepancies, uncertain fields, source URLs and dates checked, and how each field was resolved.
 ```
 
-Create `reading-progress.md` from the template in `spoiler-rules.md`, with the status **not started**. Do not assume that importing a book means the user has read any of it.
+Create `reading-progress.md` from the template in `spoiler-rules.md`, with `status: not started`, the other numbers empty, and `updated` set to today. Do not assume that importing a book means the user has read any of it.
 
 Only create `series.md` when it has a useful purpose. It can record neutral series-level bibliographic facts and, after the user has read enough material, spoiler-safe world information. Do not use it as a place to dump plot information from unread books.
 
@@ -92,6 +92,7 @@ The import is complete only when all of these hold:
 - `source.epub` exists in the final book directory and `_incoming/epubs/` holds no extra copy;
 - `book.txt` exists, is non-empty, begins with plausible book content, and contains later chapter headings or other evidence that the conversion did not truncate the book (check headings only; do not read story content);
 - `book-html/` exists and contains at least one non-empty HTML file;
+- `uv run tools/book_search.py check <book-directory>` succeeds. It prints only counts, never titles or text, and also validates `reading-progress.md`. Record any warning in `metadata.md`. If it reports that chapter numbering restarts in each part, note it in `reading-progress.md` and tell the user that progress updates need the part (for example "Book Two, chapter 5");
 - `metadata.md` and `reading-progress.md` are written.
 
 If conversion fails, keep `source.epub` in the final directory, leave the import marked incomplete, report the error, and do not move or delete the EPUB as a cleanup step.
