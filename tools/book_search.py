@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Spoiler-bounded search for books converted by tools/epub_to_txt.ps1.
 
-Works on one book directory (holding book-html/ and reading-progress.md) or on a
-series directory (holding books/<volume>-<slug>/ book directories). Text is only
-ever searched, listed or printed up to each book's reading progress.
+Works on a series directory (holding reading-progress.md and books/<volume>-<slug>/
+book directories), on one book directory inside a series, or on a standalone book
+directory (holding book-html/ and its own reading-progress.md). Text is only ever
+searched, listed or printed up to the recorded reading progress.
 
 Run from the project root, for example:
 
@@ -25,6 +26,7 @@ import sys
 import unicodedata
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
+from enum import StrEnum
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -40,12 +42,15 @@ concepts:
             without a chapter number; 'chapters' lists the section numbers.
   book      In a series directory, the volume number from the book folder's
             prefix (01-empire-of-silence is --book 1).
-  boundary  How far text may be used. By default each book's own
-            reading-progress.md. --book/--chapter/--part/--section narrow it to
-            an earlier story point: earlier books up to their progress, the
-            given book up to that point, later books not at all. Anything past
-            recorded progress, including --all, needs --allow-spoilers, which is
-            only for when the user explicitly allowed it for that request.
+  progress  One reading-progress.md per series (in the series directory), or
+            per standalone book. It records a story point: the book being read
+            (book:) and its last completed chapter or section. Earlier books
+            count as read, later books as unread.
+  boundary  How far text may be used: the recorded story point by default.
+            --book/--chapter/--part/--section narrow it to an earlier story
+            point. Anything past recorded progress, including --all, needs
+            --allow-spoilers, which is only for when the user explicitly
+            allowed it for that request.
 """
 
 OPF_NS = "{http://www.idpf.org/2007/opf}"
@@ -436,13 +441,28 @@ def load_book(book_dir: Path) -> Book:
 # Reading progress (front-matter block of reading-progress.md)
 # --------------------------------------------------------------------------
 
-PROGRESS_KEYS = ("status", "chapter", "part", "section", "updated")
-STATUSES = ("not started", "reading", "finished")
+class ProgressKey(StrEnum):
+    BOOK = "book"
+    STATUS = "status"
+    CHAPTER = "chapter"
+    PART = "part"
+    SECTION = "section"
+    UPDATED = "updated"
+
+
+class Status(StrEnum):
+    NOT_STARTED = "not started"
+    READING = "reading"
+    FINISHED = "finished"
+
+
+NUMBER_KEYS = (ProgressKey.BOOK, ProgressKey.CHAPTER, ProgressKey.PART, ProgressKey.SECTION)
 
 
 @dataclass(frozen=True)
 class Progress:
-    status: str
+    status: Status
+    book: int | None = None
     chapter: int | None = None
     part: int | None = None
     section: int | None = None
@@ -460,37 +480,42 @@ def parse_progress(path: Path) -> Progress:
     if end is None:
         raise BookError(f"{path}: the front-matter block is not closed with '---'.")
 
-    values: dict[str, str] = {}
+    values: dict[ProgressKey, str] = {}
     for line_no, raw in enumerate(lines[1:end], start=2):
         line = raw.split("#", 1)[0].strip()
         if not line:
             continue
-        key, sep, value = line.partition(":")
-        key = key.strip().lower()
+        name, sep, value = line.partition(":")
         if not sep:
             raise BookError(f"{path}:{line_no}: expected 'key: value'.")
-        if key not in PROGRESS_KEYS:
-            raise BookError(f"{path}:{line_no}: unknown key {key!r} "
-                            f"(allowed: {', '.join(PROGRESS_KEYS)}).")
+        try:
+            key = ProgressKey(name.strip().lower())
+        except ValueError:
+            raise BookError(f"{path}:{line_no}: unknown key {name.strip()!r} "
+                            f"(allowed: {', '.join(ProgressKey)}).") from None
         if key in values:
             raise BookError(f"{path}:{line_no}: {key!r} is set twice.")
         values[key] = value.strip()
 
-    status = values.get("status", "")
-    if status not in STATUSES:
-        raise BookError(f"{path}: status must be one of {', '.join(STATUSES)}; "
-                        f"found {status!r}.")
-    numbers: dict[str, int | None] = {}
-    for key in ("chapter", "part", "section"):
+    raw_status = values.get(ProgressKey.STATUS, "")
+    try:
+        status = Status(raw_status)
+    except ValueError:
+        raise BookError(f"{path}: status must be one of {', '.join(Status)}; "
+                        f"found {raw_status!r}.") from None
+    numbers: dict[ProgressKey, int | None] = {}
+    for key in NUMBER_KEYS:
         value = values.get(key, "")
         if value and not re.fullmatch(r"[1-9]\d*", value):
             raise BookError(f"{path}: {key} must be a whole number or empty; found {value!r}.")
         numbers[key] = int(value) if value else None
-    updated = values.get("updated", "")
+    updated = values.get(ProgressKey.UPDATED, "")
     if updated and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", updated):
         raise BookError(f"{path}: updated must be YYYY-MM-DD or empty; found {updated!r}.")
 
-    progress = Progress(status, **numbers)
+    progress = Progress(status, book=numbers[ProgressKey.BOOK],
+                        chapter=numbers[ProgressKey.CHAPTER], part=numbers[ProgressKey.PART],
+                        section=numbers[ProgressKey.SECTION])
     if progress.chapter is not None and progress.section is not None:
         raise BookError(f"{path}: set chapter or section, not both.")
     if progress.part is not None and progress.chapter is None:
@@ -518,15 +543,21 @@ class Volume:
     def short_title(self) -> str:
         return self.book.title or self.path.name
 
-    def progress(self) -> Progress:
-        return parse_progress(self.path / "reading-progress.md")
-
 
 @dataclass
 class Target:
+    """What a command works on: a whole series, one book of a series, or a standalone book."""
+
     name: str
-    volumes: list[Volume]
+    volumes: list[Volume]  # every book of the series, or the one standalone book
     is_series: bool
+    progress_path: Path
+    only: int | None = None  # set when the target is one book directory inside a series
+
+    def selected(self, items: list) -> list[tuple[Volume, object]]:
+        """Pair each volume with its item, keeping only the volumes this target covers."""
+        return [(v, item) for v, item in zip(self.volumes, items)
+                if self.only is None or v.number == self.only]
 
     def volume(self, number: int | None) -> Volume:
         if not self.is_series:
@@ -534,23 +565,39 @@ class Target:
                 raise BookError("--book is only for series directories.")
             return self.volumes[0]
         if number is None:
-            raise BookError("This is a series directory; say which book with --book N.")
+            if self.only is None:
+                raise BookError("This is a series directory; say which book with --book N.")
+            number = self.only
+        elif self.only is not None and number != self.only:
+            raise BookError(f"This target is book {self.only} only; point at the series "
+                            "directory to use other books.")
         for volume in self.volumes:
             if volume.number == number:
                 return volume
         available = ", ".join(str(v.number) for v in self.volumes)
         raise BookError(f"No book {number} in this series (books: {available}).")
 
+    def progress(self) -> Progress:
+        return parse_progress(self.progress_path)
+
 
 def load_target(path: Path) -> Target:
+    prefix = re.match(r"(\d+)-", path.name)
     if (path / "book-html").is_dir():
-        prefix = re.match(r"(\d+)-", path.name)
-        number = int(prefix.group(1)) if prefix else None
-        return Target(path.name, [Volume(path, number, load_book(path))], False)
-    books_dir = path / "books"
-    if not books_dir.is_dir():
-        raise BookError(f"{path} is neither a book directory (with book-html/) "
-                        "nor a series directory (with books/).")
+        if path.parent.name == "books" and prefix:  # one book inside a series
+            series_dir = path.parent.parent
+            return Target(f"{series_dir.name}/{path.name}", _load_series(series_dir), True,
+                          series_dir / "reading-progress.md", only=int(prefix.group(1)))
+        return Target(path.name, [Volume(path, None, load_book(path))], False,
+                      path / "reading-progress.md")
+    if (path / "books").is_dir():
+        return Target(path.name, _load_series(path), True, path / "reading-progress.md")
+    raise BookError(f"{path} is neither a book directory (with book-html/) "
+                    "nor a series directory (with books/).")
+
+
+def _load_series(series_dir: Path) -> list[Volume]:
+    books_dir = series_dir / "books"
     volumes: list[Volume] = []
     for book_dir in sorted(d for d in books_dir.iterdir() if d.is_dir()):
         prefix = re.match(r"(\d+)-", book_dir.name)
@@ -566,7 +613,7 @@ def load_target(path: Path) -> Target:
     if len(set(numbers)) != len(numbers):
         raise BookError(f"Two books in {books_dir} share a volume number.")
     volumes.sort(key=lambda v: v.number)
-    return Target(path.name, volumes, True)
+    return volumes
 
 
 @dataclass(frozen=True)
@@ -601,29 +648,46 @@ def point_scope(book: Book, chapter: int | None, part: int | None,
     return Scope(True, None, f"{source}: whole book")
 
 
-def recorded_scope(volume: Volume) -> Scope:
-    progress = volume.progress()
-    if progress.status == "finished":
-        return Scope(True, None, "finished: whole book")
+def _scope_in_book(book: Book, progress: Progress) -> Scope:
+    if progress.status is Status.FINISHED:
+        return Scope(True, None, f"{Status.FINISHED}: whole book")
     if progress.chapter is None and progress.section is None:
         return Scope(False, 0, f"{progress.status}: nothing completed yet (excluded)")
-    return point_scope(volume.book, progress.chapter, progress.part, progress.section,
-                       progress.status)
+    return point_scope(book, progress.chapter, progress.part, progress.section, progress.status)
 
 
-def progress_notes(target: Target) -> list[str]:
-    statuses = [v.progress().status for v in target.volumes]
-    notes = []
-    for i, volume in enumerate(target.volumes):
-        if statuses[i] != "finished" and any(s != "not started" for s in statuses[i + 1:]):
-            notes.append(f"{volume.name} is not marked finished, but a later book has progress. "
-                         "Its unread part is excluded; ask the user whether to mark it finished.")
-    return notes
+def recorded_scopes(target: Target) -> list[Scope]:
+    """Scope of every volume according to the reading-progress.md story point.
+
+    In a series, books before the current one are read in full, the current book
+    is limited by status/chapter/section, and later books are excluded.
+    """
+    progress = target.progress()
+    path = target.progress_path
+    if not target.is_series:
+        if progress.book is not None:
+            raise BookError(f"{path}: 'book' is only used in a series' reading-progress.md.")
+        return [_scope_in_book(target.volumes[0].book, progress)]
+    if progress.book is None:
+        raise BookError(f"{path}: set 'book' to the volume number being read.")
+    highest = max(v.number for v in target.volumes)
+    if progress.book > highest + 1:
+        raise BookError(f"{path}: book {progress.book} is past the imported books "
+                        f"(highest is {highest}); check the number.")
+    scopes = []
+    for volume in target.volumes:
+        if volume.number < progress.book:
+            scopes.append(Scope(True, None, "earlier book: whole book"))
+        elif volume.number == progress.book:
+            scopes.append(_scope_in_book(volume.book, progress))
+        else:
+            scopes.append(Scope(False, 0, "later book: not read yet (excluded)"))
+    return scopes
 
 
 def resolve_scopes(target: Target, args: argparse.Namespace) -> list[Scope]:
     """Scopes for search/chapters: recorded progress, optionally narrowed or widened."""
-    recorded = [recorded_scope(v) for v in target.volumes]
+    recorded = recorded_scopes(target)
     point_given = args.chapter is not None or args.section is not None
     if args.part is not None and args.chapter is None:
         raise BookError("--part is only used together with --chapter.")
@@ -633,8 +697,6 @@ def resolve_scopes(target: Target, args: argparse.Namespace) -> list[Scope]:
             raise BookError("--all cannot be combined with --book, --chapter or --section.")
         requested = [Scope(True, None, "--all: whole book") for _ in target.volumes]
     elif args.book is not None or point_given:
-        if target.is_series and args.book is None:
-            raise BookError("In a series directory, --chapter/--section need --book N.")
         chosen = target.volume(args.book)
         requested = []
         for volume, scope in zip(target.volumes, recorded):
@@ -649,7 +711,8 @@ def resolve_scopes(target: Target, args: argparse.Namespace) -> list[Scope]:
     else:
         return recorded
 
-    beyond = [v.name for v, want, have in zip(target.volumes, requested, recorded)
+    beyond = [v.name for (v, want), have in zip(target.selected(requested),
+                                                [h for _, h in target.selected(recorded)])
               if want.exceeds(have)]
     if beyond and not args.allow_spoilers:
         raise BookError(
@@ -733,7 +796,7 @@ def _location(target: Target, volume: Volume, section: Section | None) -> str:
 
 def allowed_text(target: Target, scopes: list[Scope]) -> list[tuple[str, list[str]]]:
     blocks: list[tuple[str, list[str]]] = []
-    for volume, scope in zip(target.volumes, scopes):
+    for volume, scope in target.selected(scopes):
         if not scope.included:
             continue
         blocks.append((_location(target, volume, None), volume.book.front))
@@ -743,14 +806,13 @@ def allowed_text(target: Target, scopes: list[Scope]) -> list[tuple[str, list[st
 
 
 def print_header(target: Target, scopes: list[Scope], verb: str) -> None:
-    count = len(target.volumes)
+    shown = target.selected(scopes)
+    count = len(shown)
     books = f" ({count} book{'s' if count != 1 else ''})" if target.is_series else ""
     print(f"{verb} {target.name}{books}")
-    for volume, scope in zip(target.volumes, scopes):
+    for volume, scope in shown:
         print(f"  {volume.name}: {scope.description}")
-    for note in progress_notes(target):
-        print(f"  note: {note}")
-    if not any(scope.included for scope in scopes):
+    if not any(scope.included for _, scope in shown):
         raise BookError("No text is within the reading boundary (nothing completed yet). "
                         "Ask the user what they have read.")
 
@@ -828,7 +890,7 @@ def cmd_read(target: Target, args: argparse.Namespace) -> None:
     else:
         raise BookError("Say what to read: --chapter N (with --part if needed) or --section N.")
 
-    scope = recorded_scope(volume)
+    scope = recorded_scopes(target)[target.volumes.index(volume)]
     if not scope.allows(section):
         if not args.allow_spoilers:
             raise BookError("That is beyond the reading progress. Add --allow-spoilers only "
@@ -851,7 +913,7 @@ def cmd_read(target: Target, args: argparse.Namespace) -> None:
 def cmd_chapters(target: Target, args: argparse.Namespace) -> None:
     scopes = resolve_scopes(target, args)
     print_header(target, scopes, "Table of contents of")
-    for volume, scope in zip(target.volumes, scopes):
+    for volume, scope in target.selected(scopes):
         if not scope.included:
             continue
         book = volume.book
@@ -873,7 +935,7 @@ def cmd_chapters(target: Target, args: argparse.Namespace) -> None:
             print(f"({hidden} later sections hidden)")
 
 
-def _structure_report(volume: Volume) -> list[str]:
+def _structure_report(volume: Volume, scope: Scope | None) -> list[str]:
     """Structure and progress of one book, without any titles or text."""
     book = volume.book
     numbered = [s for s in book.sections if s.chapter is not None]
@@ -892,11 +954,9 @@ def _structure_report(volume: Volume) -> list[str]:
     empty = sum(1 for s in book.sections if not s.paragraphs)
 
     warnings = []
-    try:
-        progress = recorded_scope(volume).description
-    except BookError as exc:
-        progress = "ERROR"
-        warnings.append(str(exc))
+    progress = scope.description if scope is not None else "ERROR (see above)"
+    if scope is None:
+        warnings.append("reading-progress.md is invalid")
     if not numbers:
         warnings.append("no table-of-contents labels carry chapter numbers; "
                         "record progress with 'section:'")
@@ -933,24 +993,31 @@ def _structure_report(volume: Volume) -> list[str]:
 
 def cmd_check(target: Target, _args: argparse.Namespace) -> None:
     print("Structure check (no titles or text shown)")
-    for volume in target.volumes:
+    scopes: list[Scope | None]
+    try:
+        scopes = list(recorded_scopes(target))
+        progress = target.progress()
+        where = f"book {progress.book}, " if progress.book is not None else ""
+        print(f"Reading progress ({target.progress_path}): {where}{progress.status}")
+    except BookError as exc:
+        scopes = [None] * len(target.volumes)
+        print(f"Reading progress: ERROR\n  - {exc}")
+    for volume, scope in target.selected(scopes):
         label = f"Book {volume.number}" if volume.number is not None else volume.path.name
         print(f"\n## {label}")
-        print("\n".join(_structure_report(volume)))
-    for note in progress_notes_safe(target):
-        print(f"\nnote: {note}")
-
-
-def progress_notes_safe(target: Target) -> list[str]:
-    try:
-        return progress_notes(target)
-    except BookError:
-        return []  # individual progress errors are already reported per book
+        print("\n".join(_structure_report(volume, scope)))
 
 
 # --------------------------------------------------------------------------
 # Command line
 # --------------------------------------------------------------------------
+
+
+class Command(StrEnum):
+    CHECK = "check"
+    CHAPTERS = "chapters"
+    SEARCH = "search"
+    READ = "read"
 
 
 def _positive(value: str) -> int:
@@ -968,8 +1035,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     def add_target(p: argparse.ArgumentParser) -> None:
         p.add_argument("target", type=Path,
-                       help="a book directory (with book-html/) or a series directory "
-                            "(with books/)")
+                       help="a series directory (with books/), one book directory inside "
+                            "it, or a standalone book directory")
 
     def add_point(p: argparse.ArgumentParser, title: str) -> None:
         group = p.add_argument_group(title)
@@ -991,17 +1058,17 @@ def build_parser() -> argparse.ArgumentParser:
                        help="allow going past recorded progress; only when the user "
                             "explicitly allowed it for this request")
 
-    check = sub.add_parser("check", help="structure and progress report, no titles or text",
+    check = sub.add_parser(Command.CHECK, help="structure and progress report, no titles or text",
                            epilog=CONCEPTS, formatter_class=formatter)
     add_target(check)
 
-    chapters = sub.add_parser("chapters", help="list sections within the boundary",
+    chapters = sub.add_parser(Command.CHAPTERS, help="list sections within the boundary",
                               epilog=CONCEPTS, formatter_class=formatter)
     add_target(chapters)
     add_point(chapters, "story point (narrows the boundary; default: reading progress)")
     add_spoilers(chapters, with_all=True)
 
-    search = sub.add_parser("search", help="search text within the boundary",
+    search = sub.add_parser(Command.SEARCH, help="search text within the boundary",
                             epilog=CONCEPTS, formatter_class=formatter)
     add_target(search)
     search.add_argument("query")
@@ -1018,7 +1085,7 @@ def build_parser() -> argparse.ArgumentParser:
     output.add_argument("--max", type=_positive, default=40, metavar="N",
                         help="max paragraphs to show (default 40)")
 
-    read = sub.add_parser("read", help="print a chapter or section within the boundary",
+    read = sub.add_parser(Command.READ, help="print a chapter or section within the boundary",
                           epilog=CONCEPTS, formatter_class=formatter)
     add_target(read)
     add_point(read, "what to read")
@@ -1030,7 +1097,12 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-COMMANDS = {"check": cmd_check, "chapters": cmd_chapters, "search": cmd_search, "read": cmd_read}
+COMMANDS = {
+    Command.CHECK: cmd_check,
+    Command.CHAPTERS: cmd_chapters,
+    Command.SEARCH: cmd_search,
+    Command.READ: cmd_read,
+}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1039,7 +1111,7 @@ def main(argv: list[str] | None = None) -> int:
             stream.reconfigure(encoding="utf-8", errors="replace")
     args = build_parser().parse_args(argv)
     try:
-        COMMANDS[args.command](load_target(args.target), args)
+        COMMANDS[Command(args.command)](load_target(args.target), args)
     except BookError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

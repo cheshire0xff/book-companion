@@ -41,6 +41,7 @@ book_companion/
 └── books/
     └── <author-slug>/
         └── <series-slug>/
+            ├── reading-progress.md       # one story point for the whole series
             ├── series.md                 # optional; only when useful
             ├── books/
             │   └── <volume>-<book-slug>/
@@ -48,7 +49,6 @@ book_companion/
             │       ├── book.txt
             │       ├── book-html/             # generated HTML and related files
             │       ├── metadata.md
-            │       ├── reading-progress.md
             │       └── summary.md             # create only after the user finishes
             ├── characters/
             │   └── <character-slug>/
@@ -67,7 +67,7 @@ book_companion/
 ### Layout rules
 
 - Put characters, locations, factions, and recurring objects at the series level when they belong to the wider series. Create only the directories needed for actual content; the example tree is not a checklist of folders to create.
-- For a standalone novel, use `books/<author-slug>/standalone/<book-slug>/` for the book and put any book-specific entities alongside it, for example under `entities/characters/` and `entities/locations/`. Do not invent a series.
+- For a standalone novel, use `books/<author-slug>/standalone/<book-slug>/` for the book, with its own `reading-progress.md` there, and put any book-specific entities alongside it, for example under `entities/characters/` and `entities/locations/`. Do not invent a series.
 - If a character or location appears in multiple books in a series, maintain one shared profile. Record which book and chapter support each fact. Do not use information from unread books to update the profile.
 - Use readable, lowercase, hyphen-separated slugs. Preserve the book's proper title and author spelling in metadata, even when the directory slug is simplified.
 - Never reorganize the entire library just to make it conform to this example. Respect existing structure and naming conventions once established.

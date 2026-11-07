@@ -81,7 +81,12 @@ Create `metadata.md` with known information and label unknown fields explicitly:
 - Record discrepancies, uncertain fields, source URLs and dates checked, and how each field was resolved.
 ```
 
-Create `reading-progress.md` from the template in `spoiler-rules.md`, with `status: not started`, the other numbers empty, and `updated` set to today. Do not assume that importing a book means the user has read any of it.
+Reading progress lives in one `reading-progress.md` per series, in the series directory; a standalone novel has its own in its book directory. Do not create one inside a series book's directory.
+
+- If the series (or standalone book) has no `reading-progress.md` yet, create it from the template in `spoiler-rules.md` with `book: 1` (omitted for a standalone), `status: not started`, the other numbers empty, and `updated` set to today. If the user says they have already read earlier books, record that instead.
+- If it already exists, do not change it. Importing a later volume never advances or resets progress.
+
+Do not assume that importing a book means the user has read any of it.
 
 Only create `series.md` when it has a useful purpose. It can record neutral series-level bibliographic facts and, after the user has read enough material, spoiler-safe world information. Do not use it as a place to dump plot information from unread books.
 
@@ -92,8 +97,8 @@ The import is complete only when all of these hold:
 - `source.epub` exists in the final book directory and `_incoming/epubs/` holds no extra copy;
 - `book.txt` exists, is non-empty, begins with plausible book content, and contains later chapter headings or other evidence that the conversion did not truncate the book (check headings only; do not read story content);
 - `book-html/` exists and contains at least one non-empty HTML file;
-- `uv run tools/book_search.py check <book-directory>` succeeds. It prints only counts, never titles or text, and also validates `reading-progress.md`. Record any warning in `metadata.md`. If it reports that chapter numbering restarts in each part, note it in `reading-progress.md` and tell the user that progress updates need the part (for example "Book Two, chapter 5");
-- `metadata.md` and `reading-progress.md` are written.
+- `uv run tools/book_search.py check <series-or-standalone-directory>` succeeds. It prints only counts, never titles or text, and also validates `reading-progress.md`. Record any warning in `metadata.md`. If it reports that chapter numbering restarts in each part, add a note to `reading-progress.md` and tell the user that progress in that book needs the part (for example "Book Two, chapter 5");
+- `metadata.md` is written, and the series (or standalone book) has a valid `reading-progress.md`.
 
 If conversion fails, keep `source.epub` in the final directory, leave the import marked incomplete, report the error, and do not move or delete the EPUB as a cleanup step.
 

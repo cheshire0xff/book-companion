@@ -6,21 +6,22 @@ from pathlib import Path
 
 import pytest
 
-from book_search import BookError, main, parse_chapter_number, parse_progress
+from book_search import BookError, Status, main, parse_chapter_number, parse_progress
 
 XHTML = """<?xml version='1.0' encoding='utf-8'?>
 <html xmlns="http://www.w3.org/1999/xhtml"><head><title>t</title></head>
 <body>{body}</body></html>"""
 
 
-def progress(status: str, chapter: str = "", part: str = "", section: str = "") -> str:
-    return (f"---\nstatus: {status}  # not started | reading | finished\n"
+def progress(status: str, chapter: str = "", part: str = "", section: str = "",
+             book: str = "") -> str:
+    return (f"---\nbook: {book}\nstatus: {status}  # not started | reading | finished\n"
             f"chapter: {chapter}\npart: {part}\nsection: {section}\nupdated: 2026-11-08\n---\n\n"
             "# Reading progress\n\n- Status: this human line is ignored by the tool\n")
 
 
 def make_book(book_dir: Path, title: str, files: list[tuple[str, str]], toc: list,
-              progress_text: str) -> Path:
+              progress_text: str | None = None) -> Path:
     """Write a Calibre-like book directory.
 
     files: (filename, body html) in spine order. toc: nested (label, src, children).
@@ -49,7 +50,8 @@ def make_book(book_dir: Path, title: str, files: list[tuple[str, str]], toc: lis
     (html / "toc.ncx").write_text(f"""<?xml version='1.0' encoding='utf-8'?>
 <ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
 <navMap>{points(toc)}</navMap></ncx>""", encoding="utf-8")
-    (book_dir / "reading-progress.md").write_text(progress_text, encoding="utf-8")
+    if progress_text is not None:
+        (book_dir / "reading-progress.md").write_text(progress_text, encoding="utf-8")
     return book_dir
 
 
@@ -96,25 +98,31 @@ PARTS_FILES = [
 
 @pytest.fixture
 def flat(tmp_path: Path):
+    """A standalone book with its own reading-progress.md."""
     def build(text: str = progress("reading", chapter="2")) -> str:
-        return str(make_book(tmp_path / "01-flat", "Flat Book", FLAT_FILES, FLAT_TOC, text))
+        return str(make_book(tmp_path / "standalone" / "flat", "Flat Book", FLAT_FILES,
+                             FLAT_TOC, text))
     return build
 
 
 @pytest.fixture
 def parts(tmp_path: Path):
+    """A standalone book whose chapter numbering restarts in each part."""
     def build(text: str) -> str:
-        return str(make_book(tmp_path / "01-parts", "Parts Book", PARTS_FILES, PARTS_TOC, text))
+        return str(make_book(tmp_path / "standalone" / "parts", "Parts Book", PARTS_FILES,
+                             PARTS_TOC, text))
     return build
 
 
 @pytest.fixture
 def series(tmp_path: Path):
-    """Book 1 = the flat book, book 2 = the parts book, in one series directory."""
-    def build(first: str, second: str) -> str:
+    """Book 1 = the flat book, book 2 = the parts book, one series-level progress file."""
+    def build(text: str) -> str:
         root = tmp_path / "series"
-        make_book(root / "books" / "01-flat", "Flat Book", FLAT_FILES, FLAT_TOC, first)
-        make_book(root / "books" / "02-parts", "Parts Book", PARTS_FILES, PARTS_TOC, second)
+        if not (root / "books").exists():
+            make_book(root / "books" / "01-flat", "Flat Book", FLAT_FILES, FLAT_TOC)
+            make_book(root / "books" / "02-parts", "Parts Book", PARTS_FILES, PARTS_TOC)
+        (root / "reading-progress.md").write_text(text, encoding="utf-8")
         return str(root)
     return build
 
@@ -147,9 +155,10 @@ def test_parse_chapter_number(label, expected):
 
 def test_progress_front_matter_is_read(tmp_path):
     path = tmp_path / "reading-progress.md"
-    path.write_text(progress("reading", chapter="5", part="2"), encoding="utf-8")
+    path.write_text(progress("reading", chapter="5", part="2", book="3"), encoding="utf-8")
     result = parse_progress(path)
-    assert (result.status, result.chapter, result.part, result.section) == ("reading", 5, 2, None)
+    assert result.status is Status.READING
+    assert (result.book, result.chapter, result.part, result.section) == (3, 5, 2, None)
 
 
 @pytest.mark.parametrize("text, message", [
@@ -162,6 +171,7 @@ def test_progress_front_matter_is_read(tmp_path):
     ("---\nstatus: reading\npart: 2\n---\n", "together with chapter"),
     ("---\nstatus: reading\nstatus: finished\n---\n", "set twice"),
     ("---\nstatus: reading\nupdated: yesterday\n---\n", "YYYY-MM-DD"),
+    ("---\nbook: two\nstatus: reading\n---\n", "whole number"),
 ])
 def test_progress_front_matter_is_strict(tmp_path, text, message):
     path = tmp_path / "reading-progress.md"
@@ -320,15 +330,23 @@ def test_check_reports_restarting_numbering(parts, capsys):
 
 # -- series directories -------------------------------------------------------
 
-def test_series_search_uses_each_books_progress(series, capsys):
-    root = series(progress("finished"), progress("reading", chapter="1", part="1"))
+def test_series_story_point_reads_earlier_books_in_full(series, capsys):
+    root = series(progress("reading", chapter="1", part="1", book="2"))
     out = run(capsys, "search", root, "final|alpha|beta", "--regex")[1]
+    assert "earlier book: whole book" in out
     assert "Flat Book · Chapter 5: Ending  (book 1, section 7)" in out
     assert "**alpha**" in out and "**beta**" not in out
 
 
-def test_series_story_point_excludes_later_books(series, capsys):
-    root = series(progress("finished"), progress("finished"))
+def test_series_later_books_are_excluded(series, capsys):
+    root = series(progress("reading", chapter="2", book="1"))
+    out = run(capsys, "search", root, "moon|alpha", "--regex")[1]
+    assert "**moon**" in out and "**alpha**" not in out
+    assert "later book: not read yet" in out
+
+
+def test_series_narrowing_excludes_later_books(series, capsys):
+    root = series(progress("finished", book="2"))
     out = run(capsys, "search", root, "gate|final|alpha", "--regex", "--book", "1",
               "--chapter", "1")[1]
     assert "**gate**" in out and "**final**" not in out and "**alpha**" not in out
@@ -336,7 +354,7 @@ def test_series_story_point_excludes_later_books(series, capsys):
 
 
 def test_series_story_point_past_progress_needs_permission(series, capsys):
-    root = series(progress("finished"), progress("reading", chapter="1", part="1"))
+    root = series(progress("reading", chapter="1", part="1", book="2"))
     code, _, err = run(capsys, "search", root, "delta", "--book", "2")
     assert code == 2 and "Book 2: Parts Book" in err
     out = run(capsys, "search", root, "delta", "--book", "2", "--allow-spoilers")[1]
@@ -344,7 +362,7 @@ def test_series_story_point_past_progress_needs_permission(series, capsys):
 
 
 def test_series_chapter_needs_book(series, capsys):
-    root = series(progress("finished"), progress("not started"))
+    root = series(progress("not started", book="2"))
     code, _, err = run(capsys, "search", root, "gate", "--chapter", "1")
     assert code == 2 and "--book" in err
     code, _, err = run(capsys, "read", root, "--chapter", "1")
@@ -352,19 +370,48 @@ def test_series_chapter_needs_book(series, capsys):
     assert "gate" in run(capsys, "read", root, "--book", "1", "--chapter", "1")[1]
 
 
-def test_series_notes_unfinished_earlier_book(series, capsys):
-    root = series(progress("reading", chapter="2"), progress("reading", chapter="1", part="1"))
-    out = run(capsys, "search", root, "alpha")[1]
-    assert "Book 1: Flat Book is not marked finished" in out
+def test_series_progress_needs_book(series, capsys):
+    code, _, err = run(capsys, "search", series(progress("reading", chapter="2")), "gate")
+    assert code == 2 and "set 'book'" in err
+
+
+def test_series_progress_book_may_be_one_past_the_imported_books(series, capsys):
+    out = run(capsys, "search", series(progress("reading", chapter="3", book="3")), "delta")[1]
+    assert "**delta**" in out  # books 1 and 2 count as read; book 3 isn't imported yet
+    code, _, err = run(capsys, "search", series(progress("reading", book="9")), "delta")
+    assert code == 2 and "past the imported books" in err
+
+
+def test_standalone_progress_rejects_book(flat, capsys):
+    code, _, err = run(capsys, "search", flat(progress("reading", chapter="2", book="1")), "gate")
+    assert code == 2 and "only used in a series" in err
+
+
+def test_book_directory_inside_series_uses_series_progress(series, capsys):
+    root = Path(series(progress("reading", chapter="1", part="2", book="2")))
+    book = str(root / "books" / "02-parts")
+    out = run(capsys, "search", book, "gamma|delta|final", "--regex")[1]
+    assert "**gamma**" in out and "**delta**" not in out and "**final**" not in out
+    assert "alpha" in run(capsys, "read", book, "--chapter", "1", "--part", "1")[1]
+    code, _, err = run(capsys, "read", book, "--book", "1", "--chapter", "1")
+    assert code == 2 and "book 2 only" in err
 
 
 def test_series_check_reports_each_book(series, capsys):
-    out = run(capsys, "check", series(progress("finished"), progress("not started")))[1]
-    assert "## Book 1" in out and "## Book 2" in out and "finished: whole book" in out
+    out = run(capsys, "check", series(progress("not started", book="2")))[1]
+    assert "book 2, not started" in out
+    assert "## Book 1" in out and "earlier book: whole book" in out
+    assert "## Book 2" in out and "nothing completed yet" in out
+
+
+def test_series_check_reports_invalid_progress(series, capsys):
+    out = run(capsys, "check", series("---\nstatus: reading\nchpter: 2\n---\n"))[1]
+    assert "Reading progress: ERROR" in out and "unknown key" in out
 
 
 def test_series_rejects_book_folder_without_volume_prefix(tmp_path, capsys):
-    make_book(tmp_path / "series" / "books" / "flat", "Flat Book", FLAT_FILES, FLAT_TOC,
-              progress("finished"))
+    make_book(tmp_path / "series" / "books" / "flat", "Flat Book", FLAT_FILES, FLAT_TOC)
+    (tmp_path / "series" / "reading-progress.md").write_text(
+        progress("finished", book="1"), encoding="utf-8")
     code, _, err = run(capsys, "check", str(tmp_path / "series"))
     assert code == 2 and "volume prefix" in err
