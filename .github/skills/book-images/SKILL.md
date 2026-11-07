@@ -81,12 +81,13 @@ The sidecar should contain:
 - Any uncertainty, omitted detail, or continuity consideration.
 ```
 
-Do not record a prompt as the final prompt used if the user later changes it before generation. When the user supplies the final prompt or says what they changed, update the sidecar accordingly. If the exact final prompt is unknown, label it as the prepared prompt rather than claiming it is the prompt used.
+By default, the user pastes the prepared prompt unchanged. If they report the image without mentioning any change ("done"), record the prompt as used as prepared. If they say they changed it, record the final prompt they give you or describe what they changed. If they changed it but cannot give the final wording, keep the prepared prompt and mark the final prompt as unknown. Ask only when it is genuinely unclear, not as a routine confirmation.
 
 When handing over the prompt, present it paste-ready, say where the sidecar was saved, and state:
 
 - that the user should download the image into `_incoming/images/` and leave ChatGPT's filename unchanged (give the full path if the filename is already known);
-- that they should then ask you to import it.
+- that they should then ask you to import it;
+- that if they change the prompt before generating, they should tell you what they changed.
 
 Do not imply that ChatGPT sends the image directly into the workspace, and be explicit that the image has not been generated yet.
 
@@ -96,9 +97,9 @@ Do not imply that ChatGPT sends the image directly into the workspace, and be ex
 2. Match exact base filenames to prompt sidecars first. If there is no exact match, and there is exactly one image in `_incoming/images/` whose descriptive filename reasonably matches exactly one pending prompt/entity (for example, by naming the character, subject, or visible traits), treat it as the intended image without asking for confirmation. If the filename is generic, no prompt is a reasonable match, or multiple prompts could match, ask the user. Do not use appearance alone to resolve an ambiguous association.
 3. Move it into the appropriate entity's `pics/` directory, copying and verifying the destination before removing the staged file so the staging directory does not accumulate already-imported images. Never delete the only copy before verifying the destination.
 4. Use the prepared descriptive, versioned base filename for the library copy, retaining the source image's file extension. Never overwrite an existing image. If the intended destination already exists, choose a new version suffix and update the prompt sidecar accordingly.
-5. Keep the corresponding prompt sidecar beside the image. Update its status from `prompt prepared; image not yet generated` to indicate that the user supplied the generated image, and record the original staged filename in its `Original image filename` field. Do not claim to know the exact final prompt if the user changed it before generation.
+5. Keep the corresponding prompt sidecar beside the image. Update its status from `prompt prepared; image not yet generated` to `image imported; prompt used as prepared` (or `image imported; prompt changed by user`, following the rules in section 2), and record the original staged filename in its `Original image filename` field.
 6. If there is no prompt sidecar, create one only from information actually available. Mark unknowns as unknown; do not fabricate the exact prompt.
 7. If the user asks for a new version, preserve earlier versions.
 8. Do not silently edit, crop, re-encode, or otherwise modify the image. Perform image transformations only when requested.
 
-Report where the image and sidecar now live, and anything left unresolved (for example, an unconfirmed final prompt).
+Report where the image and sidecar now live, and anything left unresolved (for example, a changed prompt whose final wording is unknown).
