@@ -16,7 +16,10 @@
   - Two files per book, in its folder: `chapters.md` (only the chapter notes) and `reference.md` (structure and chronology, cast, world, threads, end state). In a series, each book's files stand on their own.
   - Dropped: progress-bounded catch-up, the coordinator/worker loop, `story-so-far.md`, `cast.md`/`world.md`, front matter, appearance notes, source references and quote links.
   - Added to v1: fauna and flora, who holds an object and when it changes hands, and exact wording placed on what it is about.
-- [ ] Optional sources pass: a separate pass over a finished memory whose only job is to add sources (chapter or section references) to its unsourced notes. Extraction itself stays reference-free.
+- [ ] Maybe: a report-only fact check of a finished memory's `reference.md`. No refs are written into the files; extraction stays reference-free.
+  - Check hard facts (names, aliases, titles, numbers, terms, who holds what, who killed whom) entity by entity: one search per minor character, place or object confirms everything said about it. Skip main characters and spread-out, negative or interpretive claims.
+  - Report only what couldn't be confirmed or was contradicted; fix the files only where the user confirms.
+  - Try it once on Empire of the Vampire, as with condensing, and keep it only if it finds real errors cheaply. Reading `chapters-condensed.md` and `reference.md` after finishing a book may make it unnecessary.
 - [ ] Rename series "books" to "volumes" in everything user-facing, because authors use "Book One" for parts (Empire of the Vampire, Dune, single-volume LOTR).
   - Progress front matter `book:` becomes `volume:`; `--book`/`--start-book` become `--volume`/`--start-volume`; output "Book 1: …" becomes "Volume 1: …".
   - Sidecar progress fields, skills, README and tests follow.
