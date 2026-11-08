@@ -97,7 +97,7 @@ The import is complete only when all of these hold:
 - `source.epub` exists in the final book directory and `_incoming/epubs/` holds no extra copy;
 - `book.txt` exists, is non-empty, begins with plausible book content, and contains later chapter headings or other evidence that the conversion did not truncate the book (check headings only; do not read story content);
 - `book-html/` exists and contains at least one non-empty HTML file;
-- `uv run tools/book_search.py check <series-or-standalone-directory>` succeeds. It prints only counts, never titles or text, and also validates `reading-progress.md`. Record any warning in `metadata.md`. If it reports that chapter numbering restarts in each part, add a note to `reading-progress.md` and tell the user that progress in that book needs the part (for example "Book Two, chapter 5");
+- `uv run book-search check <series-or-standalone-directory>` succeeds. It prints only counts, never titles or text, and also validates `reading-progress.md`. Record any warning in `metadata.md`. If it reports that chapter numbering restarts in each part, add a note to `reading-progress.md` and tell the user that progress in that book needs the part (for example "Book Two, chapter 5");
 - `metadata.md` is written, and the series (or standalone book) has a valid `reading-progress.md`.
 
 If conversion fails, keep `source.epub` in the final directory, leave the import marked incomplete, report the error, and do not move or delete the EPUB as a cleanup step.

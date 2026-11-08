@@ -14,7 +14,7 @@ You can also just ask in plain language; the agent picks the skill from its desc
 
 1. Open the `book_companion` directory as the VS Code workspace root.
 2. The PowerShell converter is included at `tools/epub_to_txt.ps1`. It accepts `-InputFile`, `-OutputFile`, and optional `-Force`. Each conversion produces the requested TXT file plus a sibling `<name>-html/` directory. `-Force` replaces both outputs. Make sure PowerShell (`pwsh`, or `powershell.exe` on Windows) is available.
-3. Install [uv](https://docs.astral.sh/uv/) and run `uv sync` once in the project root. This creates the Python environment for `tools/book_search.py`, the spoiler-bounded search the agent uses for story questions. Run its tests with `uv run pytest`.
+3. Install [uv](https://docs.astral.sh/uv/) and run `uv sync` once in the project root. This installs the project's `book-search` command, the spoiler-bounded search the agent uses for story questions; run it as `uv run book-search …`. Run the tests with `uv run pytest` and the linter with `uv run ruff check`.
 4. **Copilot:** open **Copilot Chat** in **Agent** mode and type `/` to see the skills. If one does not appear, start a new chat and check that its `SKILL.md` frontmatter `name` matches its folder name.
 5. **Claude Code:** it reads skills from `.claude/skills/`, not `.github/skills/`. Link the two once from the project root (a directory junction needs no admin rights), then start a new session:
 
@@ -55,14 +55,14 @@ Examples:
 
 The agent should check the reading checkpoint first, use the book text only through that boundary, and distinguish details stated in the book from inference. Do not rely on external wikis for story lore.
 
-The agent searches with `tools/book_search.py`. Pointed at a series directory, it searches every book in the series up to your recorded story point: earlier books fully, the current book up to your boundary, later books not at all. It never returns text past that, including later chapter titles from a book's contents page. You can use it yourself too:
+The agent searches with `book-search`. Pointed at a series directory, it searches every book in the series up to your recorded story point: earlier books fully, the current book up to your boundary, later books not at all. It never returns text past that, including later chapter titles from a book's contents page. You can use it yourself too:
 
 ```powershell
-uv run tools/book_search.py search   books/christopher-ruocchio/sun-eater "Valka" --word --count
-uv run tools/book_search.py search   books/christopher-ruocchio/sun-eater "Valka" --book 1 --chapter 46
-uv run tools/book_search.py read     books/christopher-ruocchio/sun-eater --book 1 --chapter 46
-uv run tools/book_search.py chapters books/christopher-ruocchio/sun-eater
-uv run tools/book_search.py check    books/christopher-ruocchio/sun-eater   # structure report, no titles
+uv run book-search search   books/christopher-ruocchio/sun-eater "Valka" --word --count
+uv run book-search search   books/christopher-ruocchio/sun-eater "Valka" --book 1 --chapter 46
+uv run book-search read     books/christopher-ruocchio/sun-eater --book 1 --chapter 46
+uv run book-search chapters books/christopher-ruocchio/sun-eater
+uv run book-search check    books/christopher-ruocchio/sun-eater   # structure report, no titles
 ```
 
 `--book/--chapter` narrows the search to an earlier story point. Anything past your progress is refused unless `--allow-spoilers` is added, which the agent does only when you've explicitly allowed it. `--help` explains chapters, parts and sections.
@@ -101,11 +101,13 @@ book_companion/
 │       ├── book-images/
 │       └── book-memory-extraction/
 ├── .claude/skills/             # junction to .github/skills (Claude Code only)
-├── pyproject.toml, uv.lock     # uv environment for the Python tools
+├── pyproject.toml, uv.lock     # uv project; provides the `book-search` command
+├── src/book_companion/
+│   ├── core/                   # book structure, reading progress, spoiler boundary
+│   └── search/                 # the book-search command
+├── tests/
 ├── tools/
-│   ├── epub_to_txt.ps1         # EPUB-to-TXT and HTML converter
-│   ├── book_search.py          # spoiler-bounded search over a book or a whole series
-│   └── tests/
+│   └── epub_to_txt.ps1         # EPUB-to-TXT and HTML converter
 ├── _incoming/
 │   ├── epubs/                  # EPUBs waiting to be imported
 │   └── images/                 # ChatGPT image downloads waiting to be imported

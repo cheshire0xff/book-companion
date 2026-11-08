@@ -21,7 +21,7 @@ Related skills:
 When the user asks about a character, location, faction, object, event, or setting detail:
 
 1. Check the reading checkpoint first, following `spoiler-rules.md`.
-2. Search the relevant text only up to the safe boundary, with `tools/book_search.py` as described in `spoiler-rules.md`. For a series, search the series directory so earlier books count too.
+2. Search the relevant text only up to the safe boundary, with `book-search` as described in `spoiler-rules.md`. For a series, search the series directory so earlier books count too.
 3. Read enough surrounding text to understand context. Do not rely on an isolated keyword hit when it could be misleading.
 4. Answer the actual question directly, before any supporting detail. Do not produce a long lore essay unless requested.
 5. Separate the answer into clearly labelled categories when useful:
@@ -64,7 +64,7 @@ Rules:
 
 ## 3. Updating reading progress
 
-When the user reports progress ("I've finished chapter 18", "I'm on page 247", "I finished the book"), update the front matter of the series' `reading-progress.md` (or the standalone book's) following the "Recording progress" rules in `spoiler-rules.md`, and set `updated`. Then run `uv run tools/book_search.py check <series-dir>` and tell the user the boundary it reports.
+When the user reports progress ("I've finished chapter 18", "I'm on page 247", "I finished the book"), update the front matter of the series' `reading-progress.md` (or the standalone book's) following the "Recording progress" rules in `spoiler-rules.md`, and set `updated`. Then run `uv run book-search check <series-dir>` and tell the user the boundary it reports.
 
 ## 4. Summaries and reading notes
 

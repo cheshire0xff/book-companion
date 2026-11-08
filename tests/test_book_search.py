@@ -1,4 +1,4 @@
-"""Tests for tools/book_search.py, using small synthetic books (no real book text)."""
+"""Tests for the book-search command, using small synthetic books (no real book text)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from book_search import BookError, Status, main, parse_chapter_number, parse_progress
+from book_companion.core.errors import BookError
+from book_companion.core.labels import parse_chapter_number
+from book_companion.core.progress import Status, parse_progress
+from book_companion.search.cli import main
 
 XHTML = """<?xml version='1.0' encoding='utf-8'?>
 <html xmlns="http://www.w3.org/1999/xhtml"><head><title>t</title></head>
