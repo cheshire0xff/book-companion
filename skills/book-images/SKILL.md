@@ -37,9 +37,17 @@ Do not automate the ChatGPT website or browser to submit prompts, extract genera
 9. Write a self-contained prompt that can be pasted directly into ChatGPT Images. Do not require the image model to know the book or recognize character names; describe the visible subject and context explicitly.
 10. Do not include contradictory requirements. Prioritize the details that matter most to the requested composition.
 
+### Entity profile
+
+The research for a prompt is most of an entity profile, so keep it. When the subject is a character, location, faction or object:
+
+- If it has no `description.md`, create one from the source-backed details and inferences you collected, in the format of section 2 ("Entity profiles") of `../book-companion/SKILL.md`. Use only what this research found. No extra research pass is needed; the profile can grow later.
+- If it has one, add the source-backed details it lacks, with their chapter references. Do not remove or rewrite what is there.
+- Never put creative choices in the profile, facial-variety choices included: they are interpretation for this image, not canon. Keep inferences under **Reasonable inferences**, and never describe the entity from an image.
+
 ### Facial variety
 
-When the book leaves facial features unspecified, vary the creative facial choices between characters (for example face shape, jaw, nose, brow, eye shape, lips, skin texture, signs of age) so portraits do not converge on one generic face. Before choosing, skim the other character prompt sidecars in the same series and avoid repeating their creative facial choices. Never change canon details to create variety, and list each such choice under **Creative choices** in the sidecar.
+When the book leaves facial features unspecified, vary the creative facial choices between characters (for example face shape, jaw, nose, brow, eye shape, lips, skin texture, signs of age) so portraits do not converge on one generic face. Before choosing, read the **Creative choices** sections of the other character prompt sidecars in the same series (the rest of each sidecar is not needed here) and avoid repeating their facial choices. Never change canon details to create variety, and list each such choice under **Creative choices** in the sidecar.
 
 ### No global visual style
 
@@ -73,7 +81,7 @@ The sidecar should contain:
 - Imported: not yet
 
 ## Source-backed details
-- Detail — [Book title, chapter N]
+- Detail the prompt uses — [Book title, chapter N]
 
 ## Inferences
 - Inference and its supporting passage.
@@ -88,11 +96,13 @@ The sidecar should contain:
 - Any uncertainty, omitted detail, or continuity consideration.
 ```
 
+List under **Source-backed details** only the details the prompt uses. Other findings belong in the entity's profile (see "Entity profile" in section 1), and a notable omission in **Notes**.
+
 Copy the reading progress exactly as the front matter gives it: `book` (in a series), then `chapter` (with `part` when set) or `section`, plus `status` and `updated`. This is the boundary every detail in the sidecar and prompt was researched within. It stays as recorded even if the user reads further before generating or importing the image, because the image shows only what was known when the prompt was prepared.
 
 By default, the user pastes the prepared prompt unchanged. If they report the image without mentioning any change ("done"), record the prompt as used as prepared. If they say they changed it, record the final prompt they give you or describe what they changed. If they changed it but cannot give the final wording, keep the prepared prompt and mark the final prompt as unknown. Ask only when it is genuinely unclear, not as a routine confirmation.
 
-When handing over the prompt, present it paste-ready, say where the sidecar was saved, and state:
+When handing over the prompt, present it paste-ready, say where the sidecar was saved (and the profile, if you created or added to one), and state:
 
 - that the user should download the image into `_incoming/images/` and leave ChatGPT's filename unchanged (give the full path if the filename is already known);
 - that they should then ask you to import it;
@@ -108,7 +118,8 @@ Do not imply that ChatGPT sends the image directly into the workspace, and be ex
 4. Use the prepared descriptive, versioned base filename for the library copy, retaining the source image's file extension. Never overwrite an existing image. If the intended destination already exists, choose a new version suffix and update the prompt sidecar accordingly.
 5. Keep the corresponding prompt sidecar beside the image. Update its status from `prompt prepared; image not yet generated` to `image imported; prompt used as prepared` (or `image imported; prompt changed by user`, following the rules in section 2), and record the original staged filename in its `Original image filename` field and today's date in `Imported`. Leave `Reading progress at preparation` as it is.
 6. If there is no prompt sidecar, create one only from information actually available. Mark unknowns as unknown (including `Reading progress at preparation`, unless the user tells you); do not fabricate the exact prompt.
-7. If the user asks for a new version, preserve earlier versions.
-8. Do not silently edit, crop, re-encode, or otherwise modify the image. Perform image transformations only when requested.
+7. If the entity still has no `description.md` and the sidecar lists source-backed details, create the profile from the sidecar's source-backed details and inferences, following "Entity profile" in section 1. Without such details, leave it missing; never write a profile from the image.
+8. If the user asks for a new version, preserve earlier versions.
+9. Do not silently edit, crop, re-encode, or otherwise modify the image. Perform image transformations only when requested.
 
-Report where the image and sidecar now live, and anything left unresolved (for example, a changed prompt whose final wording is unknown).
+Report where the image and sidecar now live, any profile you created, and anything left unresolved (for example, a changed prompt whose final wording is unknown).

@@ -84,7 +84,7 @@ book-search check    books/christopher-ruocchio/sun-eater   # structure report, 
 Image generation is manual; the Go subscription is not connected to the OpenAI API or this local library.
 
 1. Ask for an image prompt, for example: **`/book-companion:book-images Prepare a full-body portrait prompt for Valka, based only on what I've read.`**
-2. The agent researches the relevant passages and writes a prompt sidecar in the character's or location's `pics/` directory. It tells you to download the image into `_incoming/images/`; you do not need to rename it.
+2. The agent researches the relevant passages and writes a prompt sidecar in the character's or location's `pics/` directory. From the same research it writes `description.md` if there isn't one yet, or adds details the existing one lacks. It tells you to download the image into `_incoming/images/`; you do not need to rename it.
 3. Copy the prompt into ChatGPT Images and generate the image.
 4. Download the image into `_incoming/images/` and keep ChatGPT's original filename.
 5. Ask the agent to import it: **`/book-companion:book-images Import the new image.`**
