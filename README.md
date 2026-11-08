@@ -1,5 +1,7 @@
 # Book Companion
 
+[![CI](https://github.com/cheshire0xff/book-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/cheshire0xff/book-companion/actions/workflows/ci.yml)
+
 A spoiler-safe companion for your own EPUB library, run by an AI agent (Claude Code). The library is ordinary files and folders on your machine; this repository holds only the tools and skills, never any books. Four skills handle the work:
 
 | Skill | Use it for |
