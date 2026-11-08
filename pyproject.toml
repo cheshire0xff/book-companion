@@ -9,7 +9,6 @@ dependencies = [
 
 [project.scripts]
 book-search = "book_companion.search.cli:main"
-book-notes = "book_companion.notes.cli:main"
 
 [dependency-groups]
 dev = [

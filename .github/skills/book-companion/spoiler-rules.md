@@ -114,8 +114,4 @@ Before answering a question about the story, a character, a location, a faction,
 
 If a spoiler boundary prevents an answer, say so plainly without hinting at what lies beyond it.
 
-### Notes
-
-The `book-notes` tool stores notes extracted section by section, and only from sections within the recorded progress. Each note points to the paragraph it comes from. Its queries (`cast`, `notes`, `appearances`, `recap`) apply the same boundary and story-point flags as `book-search`, and an entry nobody has met yet looks exactly like one that does not exist. Never open the `notes/*.jsonl` files directly; always query them with the tool. The `book-notes` skill describes how and when notes are extracted.
-
-These rules and the tools reduce accidental spoilers but are not a hard technical security boundary: the agent still has filesystem access to the complete text. Follow the retrieval rules deliberately. Never claim that later text is technically inaccessible.
+These rules and the tool reduce accidental spoilers but are not a hard technical security boundary: the agent still has filesystem access to the complete text. Follow the retrieval rules deliberately. Never claim that later text is technically inaccessible.

@@ -22,7 +22,7 @@ Do not automate the ChatGPT website or browser to submit prompts, extract genera
 ## 1. Preparing a prompt
 
 1. Check the reading checkpoint: the front matter of the series' `reading-progress.md` (or the standalone book's). It bounds the research, and you record it in the sidecar.
-2. Get the established visual details from the notes: `uv run book-notes appearances <series-dir> <entity>`, with a story point (`--book/--chapter`) when the image shows an earlier moment. If the `core` or `appearance` pass is behind, catch it up first (see the `book-notes` skill). Then use `book-search` (as described in `spoiler-rules.md`) to read the cited passages for context, and to look for anything the notes missed.
+2. Retrieve relevant passages only from safe chapters, with `book-search` as described in `spoiler-rules.md`. When the image shows an earlier moment, narrow the search to that story point (`--book/--chapter`).
 3. Check the entity's existing `description.md` and existing pictures/prompts for continuity. Compare each existing sidecar's recorded reading progress with this image's story point:
    - An image prepared at an earlier point may lack details established since.
    - An image prepared at a later point may show details from after the moment this image depicts; do not carry those over.

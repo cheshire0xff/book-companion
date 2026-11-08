@@ -1,7 +1,7 @@
-"""Command-line pieces shared by book-search and book-notes.
+"""Command-line pieces shared by the book-search commands.
 
-Both tools take the same target and boundary flags, so a story point or start
-point means exactly the same thing everywhere.
+Every command takes the same target and boundary flags, so a story point or
+start point means exactly the same thing everywhere.
 """
 
 from __future__ import annotations

@@ -70,11 +70,6 @@ class Target:
     def progress(self) -> Progress:
         return parse_progress(self.progress_path)
 
-    @property
-    def notes_dir(self) -> Path:
-        """Where extracted notes live: next to the series' (or standalone book's) progress."""
-        return self.progress_path.parent / "notes"
-
     def volume_index(self, book: int | None) -> int:
         """Reading-order index of a volume, from its number (None for a standalone book)."""
         if not self.is_series:

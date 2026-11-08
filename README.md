@@ -1,12 +1,11 @@
 # Book Companion
 
-A local book library managed by an AI agent (GitHub Copilot or Claude Code) in VS Code. The library itself is ordinary files and folders. Four skills handle the work:
+A local book library managed by an AI agent (GitHub Copilot or Claude Code) in VS Code. The library itself is ordinary files and folders. Three skills handle the work:
 
 | Skill | Use it for |
 | --- | --- |
 | `/book-import` | Importing an EPUB from `_incoming/epubs/` |
 | `/book-images` | Preparing image prompts and importing generated images |
-| `/book-notes` | Extracting per-chapter notes (recaps, cast, appearances, world, threads), e.g. "update my notes" |
 | `/book-companion` | Spoiler-safe questions, entity profiles, reading progress, summaries |
 
 You can also just ask in plain language; the agent picks the skill from its description. Shared rules live in `.github/skills/book-companion/library.md` (layout, file safety) and `spoiler-rules.md` (reading boundary), which the skills read before working.
@@ -68,21 +67,6 @@ uv run book-search check    books/christopher-ruocchio/sun-eater   # structure r
 
 `--book/--chapter` narrows the search to an earlier story point. Anything past your progress is refused unless `--allow-spoilers` is added, which the agent does only when you've explicitly allowed it. `--help` explains chapters, parts and sections.
 
-### Notes
-
-Keyword search misses passages that never use a name ("she", "the xenologist"). So the agent also keeps **notes**, extracted from the text one chapter at a time, in reading order, never past your progress. Four passes each read a chapter once: `core` (recap, story so far, everyone and everything named), `appearance`, `world` (factions, religion, magic or technology, history) and `threads` (open questions, promises, secrets, relationships, who knows what). Notes are short free text, linked to the characters, places and other entries they are about. Each one points to the paragraph and exact words it comes from: the tool checks those words against the book when storing the note, and shows them from the book text when you query it.
-
-Notes are extracted only when needed: when a request depends on a pass that is behind (an image needs `core` and `appearance`), or when you say "update my notes". They live in the series' `notes/` folder. You can query them too:
-
-```powershell
-uv run book-notes status      books/christopher-ruocchio/sun-eater
-uv run book-notes appearances books/christopher-ruocchio/sun-eater valka-onderra
-uv run book-notes cast        books/christopher-ruocchio/sun-eater --kind character
-uv run book-notes notes       books/christopher-ruocchio/sun-eater valka-onderra --pass world
-uv run book-notes notes       books/christopher-ruocchio/sun-eater --pass threads
-uv run book-notes recap       books/christopher-ruocchio/sun-eater --story-so-far
-```
-
 ## Generate an image with ChatGPT
 
 Image generation is manual; the Go subscription is not connected to the OpenAI API or this local workspace.
@@ -115,14 +99,12 @@ book_companion/
 │       ├── book-companion/     # SKILL.md + shared library.md and spoiler-rules.md
 │       ├── book-import/
 │       ├── book-images/
-│       ├── book-notes/
 │       └── book-memory-extraction/
 ├── .claude/skills/             # junction to .github/skills (Claude Code only)
-├── pyproject.toml, uv.lock     # uv project; provides `book-search` and `book-notes`
+├── pyproject.toml, uv.lock     # uv project; provides the `book-search` command
 ├── src/book_companion/
 │   ├── core/                   # book structure, reading progress, spoiler boundary
-│   ├── search/                 # the book-search command
-│   └── notes/                  # the book-notes command
+│   └── search/                 # the book-search command
 ├── tests/
 ├── tools/
 │   └── epub_to_txt.ps1         # EPUB-to-TXT and HTML converter

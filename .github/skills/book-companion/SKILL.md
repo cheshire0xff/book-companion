@@ -14,7 +14,6 @@ Related skills:
 
 - **`book-import`**: importing an EPUB. If that skill is not loaded, read `.github/skills/book-import/SKILL.md` and follow it.
 - **`book-images`**: preparing image prompts and importing generated images. If that skill is not loaded, read `.github/skills/book-images/SKILL.md` and follow it.
-- **`book-notes`**: extracting and querying per-chapter notes (recaps, cast, appearances, world, threads). If that skill is not loaded, read `.github/skills/book-notes/SKILL.md` and follow it.
 - **`book-memory-extraction`**: full-book summaries (see section 4).
 
 ## 1. Answering questions about the book
@@ -22,17 +21,16 @@ Related skills:
 When the user asks about a character, location, faction, object, event, or setting detail:
 
 1. Check the reading checkpoint first, following `spoiler-rules.md`.
-2. Start from the notes when the question fits them: `book-notes cast`, `notes` (one entry, or a whole pass such as `--pass threads`), `appearances` or `recap` (see the `book-notes` skill). They also cover passages that never use the name. If the passes the question needs are behind, catch them up first, or answer from search and say the notes are not up to date.
-3. Search the relevant text only up to the safe boundary, with `book-search` as described in `spoiler-rules.md`, to check a note, find exact wording, or answer what the notes do not cover. For a series, search the series directory so earlier books count too.
-4. Read enough surrounding text to understand context. Do not rely on an isolated keyword hit when it could be misleading.
-5. Answer the actual question directly, before any supporting detail. Do not produce a long lore essay unless requested.
-6. Separate the answer into clearly labelled categories when useful:
+2. Search the relevant text only up to the safe boundary, with `book-search` as described in `spoiler-rules.md`. For a series, search the series directory so earlier books count too.
+3. Read enough surrounding text to understand context. Do not rely on an isolated keyword hit when it could be misleading.
+4. Answer the actual question directly, before any supporting detail. Do not produce a long lore essay unless requested.
+5. Separate the answer into clearly labelled categories when useful:
    - **Established in the book:** directly supported by accessible text.
    - **Reasonable inference:** a conclusion supported by that text but not explicitly stated.
    - **Not established yet:** information not found before the checkpoint.
-7. Cite chapter numbers for substantive claims, compactly. Never fabricate a chapter number or page reference.
-8. If two passages appear inconsistent, mention the discrepancy rather than silently reconciling them.
-9. Do not fill missing visual or worldbuilding details with facts from memory or outside sources.
+6. Cite chapter numbers for substantive claims, compactly. Never fabricate a chapter number or page reference.
+7. If two passages appear inconsistent, mention the discrepancy rather than silently reconciling them.
+8. Do not fill missing visual or worldbuilding details with facts from memory or outside sources.
 
 ## 2. Entity profiles
 
@@ -66,7 +64,7 @@ Rules:
 
 ## 3. Updating reading progress
 
-When the user reports progress ("I've finished chapter 18", "I'm on page 247", "I finished the book"), update the front matter of the series' `reading-progress.md` (or the standalone book's) following the "Recording progress" rules in `spoiler-rules.md`, and set `updated`. Then run `uv run book-search check <series-dir>` and tell the user the boundary it reports. Do not start note extraction just because progress changed; the `book-notes` skill says when it runs.
+When the user reports progress ("I've finished chapter 18", "I'm on page 247", "I finished the book"), update the front matter of the series' `reading-progress.md` (or the standalone book's) following the "Recording progress" rules in `spoiler-rules.md`, and set `updated`. Then run `uv run book-search check <series-dir>` and tell the user the boundary it reports.
 
 ## 4. Summaries and reading notes
 
