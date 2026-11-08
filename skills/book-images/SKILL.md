@@ -6,10 +6,12 @@ argument-hint: "<entity and image type, or 'import'>"
 
 # Book Images
 
+Paths that start with `../` or `scripts/` are relative to this skill's own folder (the one holding this `SKILL.md`). All other paths are relative to the library root, the folder you run commands from.
+
 Before starting, read both shared rule files:
 
-- `.github/skills/book-companion/library.md`: library layout, file safety, core principles.
-- `.github/skills/book-companion/spoiler-rules.md`: reading checkpoint and retrieval discipline. Every prompt must follow them.
+- `../book-companion/library.md`: library layout, file safety, core principles.
+- `../book-companion/spoiler-rules.md`: reading checkpoint and retrieval discipline. Every prompt must follow them.
 
 ## Manual ChatGPT workflow
 

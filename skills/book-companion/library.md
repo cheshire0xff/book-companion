@@ -6,12 +6,12 @@ You are the agent responsible for maintaining this personal book library and hel
 
 Do not turn this project into a software-engineering exercise. Prefer the tools already available in your environment and ordinary filesystem operations. Do not create a custom EPUB parser, retrieval system, database, vector store, MCP server, web application, or Python library unless the user explicitly asks for one.
 
-The project's own tools are `tools/epub_to_txt.ps1` (conversion) and `book-search` (spoiler-bounded search, run with `uv run` from the project root). Use them as documented; do not modify them unless the user asks you to.
+The plugin's own tools are `epub_to_txt.ps1` (conversion, in the `book-import` skill's `scripts/` folder) and the `book-search` command (spoiler-bounded search, installed on the user's PATH; see the plugin's README). Use them as documented; do not modify them unless the user asks you to.
 
 ## Core principles
 
 1. **The book is the source of truth.** Base claims about the fictional world on the supplied book text, not memory, fan wikis, reviews, adaptations, or assumptions.
-2. **Protect the user's reading experience.** Never reveal, rely on, or casually inspect material beyond the user's stated reading checkpoint. The rules are in `.github/skills/book-companion/spoiler-rules.md`.
+2. **Protect the user's reading experience.** Never reveal, rely on, or casually inspect material beyond the user's stated reading checkpoint. The rules are in `spoiler-rules.md`, next to this file.
 3. **Separate canon from interpretation.** Make clear which details are explicitly stated in the book, which are reasonable inferences, and which are creative choices added for an image.
 4. **Keep the library simple and portable.** Use ordinary directories, EPUB, TXT, Markdown, and image files. Do not add infrastructure without a demonstrated need.
 5. **Preserve source material and prior work.** Never silently overwrite an original EPUB, an existing description, a prompt, a book memory, or an image.
@@ -20,22 +20,10 @@ The project's own tools are `tools/epub_to_txt.ps1` (conversion) and `book-searc
 
 ## Library layout
 
-The project root is the directory containing `README.md` and `.github/skills/`. Use this layout as an example, creating directories only when they are needed:
+The library root is the folder the user works in: the one that holds `books/` and `_incoming/`. Run commands from there; the paths in these skills are relative to it. The skills and tools are installed separately and never live in the library. If the current folder has neither `books/` nor `_incoming/`, ask the user where their library is rather than creating one. Use this layout as an example, creating directories only when they are needed:
 
 ```text
-book_companion/
-├── README.md
-├── .github/
-│   └── skills/
-│       ├── book-companion/        # questions, profiles, progress + shared rules
-│       ├── book-import/           # EPUB import
-│       ├── book-images/           # image prompts and generated-image import
-│       └── book-memory-extraction/ # memory of a finished book
-├── pyproject.toml                 # uv project; provides the `book-search` command
-├── src/book_companion/            # Python package (core: structure, progress, boundary)
-├── tests/
-├── tools/
-│   └── epub_to_txt.ps1            # EPUB-to-TXT and HTML converter
+<library>/
 ├── _incoming/
 │   ├── epubs/
 │   └── images/

@@ -1,12 +1,14 @@
 ---
 name: book-import
-description: "Use when importing an EPUB into the user's book library: identifying its title, author, series and volume, filing it in the library, converting it to TXT and HTML with tools/epub_to_txt.ps1, and writing its metadata and reading-progress notes. Do not use for developing or modifying the Book Companion application or its scripts."
+description: "Use when importing an EPUB into the user's book library: identifying its title, author, series and volume, filing it in the library, converting it to TXT and HTML with the bundled epub_to_txt.ps1, and writing its metadata and reading-progress notes. Do not use for developing or modifying the Book Companion application or its scripts."
 argument-hint: "[path to EPUB, default _incoming/epubs/]"
 ---
 
 # Book Import
 
-Before starting, read `.github/skills/book-companion/library.md` for the library layout, file-safety rules, and core principles. Use the reading-progress template in `.github/skills/book-companion/spoiler-rules.md`.
+Paths that start with `../` or `scripts/` are relative to this skill's own folder (the one holding this `SKILL.md`). All other paths are relative to the library root, the folder you run commands from.
+
+Before starting, read `../book-companion/library.md` for the library layout, file-safety rules, and core principles. Use the reading-progress template in `../book-companion/spoiler-rules.md`.
 
 The user may simply place an EPUB in `_incoming/epubs/` and ask you to import it. They should not have to provide its author, title, series, or destination path when those can be established from the file.
 
@@ -36,15 +38,15 @@ The user may simply place an EPUB in `_incoming/epubs/` and ask you to import it
 
 ## 3. Convert EPUB to TXT and HTML
 
-Use the PowerShell script at `tools/epub_to_txt.ps1`. Each conversion creates both `book.txt` and a sibling `book-html/` directory containing Calibre's XHTML documents and related package files. `book-search` reads the book from `book-html/`: its text, and its table of contents for the chapter boundaries. `book.txt` is a plain-text copy. Do not invoke Calibre directly and do not implement another converter unless the user explicitly asks you to.
+Use the PowerShell script `scripts/epub_to_txt.ps1` in this skill's folder; call it by its full path, since commands run from the library root. Each conversion creates both `book.txt` and a sibling `book-html/` directory containing Calibre's XHTML documents and related package files. `book-search` reads the book from `book-html/`: its text, and its table of contents for the chapter boundaries. `book.txt` is a plain-text copy. Do not invoke Calibre directly and do not implement another converter unless the user explicitly asks you to.
 
 The script accepts `-InputFile`, `-OutputFile`, and `-Force`. Use the PowerShell executable available in the environment (normally `pwsh`; on Windows, `powershell.exe` may also be available):
 
 ```powershell
-pwsh -NoProfile -File tools/epub_to_txt.ps1 -InputFile '<book-directory>/source.epub' -OutputFile '<book-directory>/book.txt'
+pwsh -NoProfile -File "<this skill's folder>/scripts/epub_to_txt.ps1" -InputFile '<book-directory>/source.epub' -OutputFile '<book-directory>/book.txt'
 ```
 
-1. Confirm that `tools/epub_to_txt.ps1` exists. If the script or a usable PowerShell interpreter is missing, do not silently substitute another conversion method. Tell the user exactly what is missing and ask them to provide/install it or authorize an alternative.
+1. Confirm that `scripts/epub_to_txt.ps1` exists. If the script or a usable PowerShell interpreter is missing, do not silently substitute another conversion method. Tell the user exactly what is missing and ask them to provide/install it or authorize an alternative.
 2. Use the documented parameter names exactly. Quote paths, especially paths containing spaces.
 3. Do not pass `-Force` during normal import; it replaces both the TXT file and its HTML directory. Neither output should exist yet; if either already exists, inspect it and resolve the conflict rather than overwriting it. Use `-Force` only when the user explicitly authorizes replacing those outputs.
 4. Do not modify the script itself unless the user asks you to.
@@ -97,7 +99,7 @@ The import is complete only when all of these hold:
 - `source.epub` exists in the final book directory and `_incoming/epubs/` holds no extra copy;
 - `book.txt` exists, is non-empty, begins with plausible book content, and contains later chapter headings or other evidence that the conversion did not truncate the book (check headings only; do not read story content);
 - `book-html/` exists and contains at least one non-empty HTML file;
-- `uv run book-search check <series-or-standalone-directory>` succeeds. It prints only counts, never titles or text, and also validates `reading-progress.md`. Record any warning in `metadata.md`. If it reports that chapter numbering restarts in each part, add a note to `reading-progress.md` and tell the user that progress in that book needs the part (for example "Book Two, chapter 5");
+- `book-search check <series-or-standalone-directory>` succeeds. It prints only counts, never titles or text, and also validates `reading-progress.md`. Record any warning in `metadata.md`. If it reports that chapter numbering restarts in each part, add a note to `reading-progress.md` and tell the user that progress in that book needs the part (for example "Book Two, chapter 5");
 - `metadata.md` is written, and the series (or standalone book) has a valid `reading-progress.md`.
 
 If conversion fails, keep `source.epub` in the final directory, leave the import marked incomplete, report the error, and do not move or delete the EPUB as a cleanup step.

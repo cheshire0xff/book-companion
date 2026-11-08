@@ -1,0 +1,10 @@
+{
+  "name": "book-companion",
+  "displayName": "Book Companion",
+  "version": "0.1.0",
+  "description": "Spoiler-safe companion for your own EPUB library: import books, ask questions bounded by your reading progress, prepare image prompts, and keep a memory of finished books.",
+  "author": { "name": "cheshire0xff" },
+  "repository": "https://github.com/cheshire0xff/book-companion",
+  "license": "MIT",
+  "keywords": ["books", "epub", "reading", "spoilers"]
+}

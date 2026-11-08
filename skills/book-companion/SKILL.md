@@ -5,15 +5,17 @@ description: "Use for spoiler-safe questions about books in the user's library (
 
 # Book Companion
 
+Paths that start with `../` or `scripts/` are relative to this skill's own folder (the one holding this `SKILL.md`). All other paths are relative to the library root, the folder you run commands from.
+
 Before starting, read both shared rule files in this skill's folder:
 
-- `.github/skills/book-companion/library.md`: library layout, file safety, core principles.
-- `.github/skills/book-companion/spoiler-rules.md`: reading progress, safe boundary, and retrieval discipline.
+- `library.md`: library layout, file safety, core principles.
+- `spoiler-rules.md`: reading progress, safe boundary, and retrieval discipline.
 
 Related skills:
 
-- **`book-import`**: importing an EPUB. If that skill is not loaded, read `.github/skills/book-import/SKILL.md` and follow it.
-- **`book-images`**: preparing image prompts and importing generated images. If that skill is not loaded, read `.github/skills/book-images/SKILL.md` and follow it.
+- **`book-import`**: importing an EPUB. If that skill is not loaded, read `../book-import/SKILL.md` and follow it.
+- **`book-images`**: preparing image prompts and importing generated images. If that skill is not loaded, read `../book-images/SKILL.md` and follow it.
 - **`book-memory-extraction`**: the book memory of a finished book (see section 4).
 
 ## 1. Answering questions about the book
@@ -64,10 +66,10 @@ Rules:
 
 ## 3. Updating reading progress
 
-When the user reports progress ("I've finished chapter 18", "I'm on page 247", "I finished the book"), update the front matter of the series' `reading-progress.md` (or the standalone book's) following the "Recording progress" rules in `spoiler-rules.md`, and set `updated`. Then run `uv run book-search check <series-dir>` and tell the user the boundary it reports.
+When the user reports progress ("I've finished chapter 18", "I'm on page 247", "I finished the book"), update the front matter of the series' `reading-progress.md` (or the standalone book's) following the "Recording progress" rules in `spoiler-rules.md`, and set `updated`. Then run `book-search check <series-dir>` and tell the user the boundary it reports.
 
 ## 4. Book memory
 
-When the user has finished a book and asks for its memory or a recap, invoke the **`book-memory-extraction`** skill. If it cannot be invoked, read `.github/skills/book-memory-extraction/SKILL.md` and follow it. That skill owns the finished-book check, the method, and its output files (`chapters.md` and `reference.md` in the book's folder); do not substitute your own outline.
+When the user has finished a book and asks for its memory or a recap, invoke the **`book-memory-extraction`** skill. If it cannot be invoked, read `../book-memory-extraction/SKILL.md` and follow it. That skill owns the finished-book check, the method, and its output files (`chapters.md` and `reference.md` in the book's folder); do not substitute your own outline.
 
 While a book is still being read, there is no memory: answer questions, recaps included, from the text up to the boundary as in section 1.

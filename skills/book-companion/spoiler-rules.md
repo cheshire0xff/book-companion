@@ -74,13 +74,13 @@ The user may update progress informally, for example "I've finished chapter 18",
 
 ## Retrieval discipline
 
-Search and read story text with the bounded search tool, run from the project root. Point it at the **series directory** (`books/<author>/<series>/`) so that facts from earlier books in the series are found too. Point it at one book directory inside the series to search only that book (the series' progress still applies), or at a standalone novel's book directory.
+Search and read story text with the bounded search tool, run from the library root (the folder that holds `books/`). Point it at the **series directory** (`books/<author>/<series>/`) so that facts from earlier books in the series are found too. Point it at one book directory inside the series to search only that book (the series' progress still applies), or at a standalone novel's book directory.
 
 ```powershell
-uv run book-search search   <series-dir> "<query>"                  # whole series, within progress
-uv run book-search search   <series-dir> "<query>" --book 1 --chapter 46   # as of an earlier story point
-uv run book-search read     <series-dir> --book 1 --chapter 46       # a whole chapter
-uv run book-search chapters <series-dir>                             # sections within the boundary
+book-search search   <series-dir> "<query>"                  # whole series, within progress
+book-search search   <series-dir> "<query>" --book 1 --chapter 46   # as of an earlier story point
+book-search read     <series-dir> --book 1 --chapter 46       # a whole chapter
+book-search chapters <series-dir>                             # sections within the boundary
 ```
 
 The recorded story point decides what is searchable: earlier books in full, the current book up to its boundary, later books not at all. Results name the book, chapter and section. The tool also skips each book's contents page, so later chapter titles cannot surface. Useful search options: `--word`, `--regex`, `--context N` (whole paragraphs around each hit), `--count` (matches per section). `read` also takes `--section N` and `--from P --to Q` (paragraphs). Run `--help` for the rest.
@@ -88,7 +88,7 @@ The recorded story point decides what is searchable: earlier books in full, the 
 `--book/--chapter/--part/--section` on `search` and `chapters` **narrow** the boundary to an earlier story point: earlier books up to their progress, the given book up to that point, later books not at all. `--start-book/--start-chapter/--start-part/--start-section` make the search begin later. Together they give a range, for example only chapters 66–71:
 
 ```powershell
-uv run book-search search <series-dir> "Kalima" --word --start-book 1 --start-chapter 66 --book 1 --chapter 71
+book-search search <series-dir> "Kalima" --word --start-book 1 --start-chapter 66 --book 1 --chapter 71
 ```
 
 Narrowing and start points are always allowed; they never widen past recorded progress. Use them when an answer or image should reflect a particular stretch of the story.

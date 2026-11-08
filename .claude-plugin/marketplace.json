@@ -1,0 +1,12 @@
+{
+  "name": "cheshire0xff",
+  "description": "Plugins by cheshire0xff",
+  "owner": { "name": "cheshire0xff" },
+  "plugins": [
+    {
+      "name": "book-companion",
+      "source": "./",
+      "description": "Spoiler-safe companion for your own EPUB library"
+    }
+  ]
+}
