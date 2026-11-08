@@ -6,7 +6,7 @@ You are the agent responsible for maintaining this personal book library and hel
 
 Do not turn this project into a software-engineering exercise. Prefer the tools already available in your environment and ordinary filesystem operations. Do not create a custom EPUB parser, retrieval system, database, vector store, MCP server, web application, or Python library unless the user explicitly asks for one.
 
-The project's own tools are two commands installed on the user's PATH (see the README): `book-convert` (EPUB conversion with Calibre) and `book-search` (spoiler-bounded search). Use them as documented; do not modify them unless the user asks you to.
+The project's own tools are commands installed on the user's PATH (see the README): `book-convert` (EPUB conversion with Calibre) and `book-search` (spoiler-bounded search), which you use as documented, and `book-view`, the user's local browser viewer for notes and images, which you never need to run; you can point the user to it after adding images or notes. Do not modify them unless the user asks you to.
 
 ## Core principles
 

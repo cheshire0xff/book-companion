@@ -18,7 +18,7 @@ You can also just ask in plain language; the agent picks the skill from its desc
 The tools and the library are separate. You install the plugin and the `book-search` command once, then work from your library folder.
 
 1. **Prerequisites:** [uv](https://docs.astral.sh/uv/) and [Calibre](https://calibre-ebook.com/) (its `ebook-convert` does the conversion). Both run on Windows, macOS and Linux; on Linux, make sure `ebook-convert` is on your PATH.
-2. **Install the commands** `book-search` (the spoiler-bounded search the skills use for story questions) and `book-convert` (EPUB conversion):
+2. **Install the commands** `book-search` (the spoiler-bounded search the skills use for story questions), `book-convert` (EPUB conversion) and `book-view` (a local viewer for your notes and images):
 
    ```shell
    uv tool install git+https://github.com/cheshire0xff/book-companion
@@ -104,6 +104,16 @@ They are spoiler-complete notes for recalling the book later, for example before
 
 There is no memory for a book you haven't finished. While you are reading, questions and recaps are answered from the text up to your progress.
 
+## Browse the library
+
+Run `book-view` in your library folder (or `book-view path/to/library`). It starts a small web server on this computer only (`http://127.0.0.1:8765/`), opens your browser, and runs until you press Ctrl+C:
+
+- **Library:** every series and standalone book, with your reading progress and image thumbnails.
+- **Series:** the books with their notes (metadata, reference, chapter notes), and a card for each character, location, faction or object.
+- **Entity:** its images, each with its prompt in a collapsible box, next to the rendered `description.md`, plus any prompts still waiting for an image.
+
+Pages are rendered from the files on every request, so reload after adding an image or editing a note. Memory notes of books past your recorded progress stay behind a "⚠ Spoilers … Show anyway" box until you open it. The viewer never shows a book's text (`book.txt`, `book-html/`, `source.epub`) or anything outside the library. Use `--port N` if 8765 is taken, and `--no-browser` to only print the address.
+
 ## Where things live
 
 This repository (the plugin and the `book-search` package):
@@ -118,11 +128,12 @@ book-companion/
 │   ├── book-import/
 │   ├── book-images/
 │   └── book-memory-extraction/
-├── pyproject.toml, uv.lock     # uv project; provides the `book-search` and `book-convert` commands
+├── pyproject.toml, uv.lock     # uv project; provides the `book-search`, `book-convert` and `book-view` commands
 ├── src/book_companion/
 │   ├── core/                   # book structure, reading progress, spoiler boundary
 │   ├── search/                 # the book-search command
-│   └── convert/                # the book-convert command
+│   ├── convert/                # the book-convert command
+│   └── view/                   # the book-view command (local notes and image viewer)
 └── tests/
 ```
 

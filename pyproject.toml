@@ -1,17 +1,19 @@
 [project]
 name = "book-companion"
 version = "0.1.0"
-description = "EPUB conversion and spoiler-bounded search for the Book Companion library"
+description = "EPUB conversion, spoiler-bounded search and a local viewer for the Book Companion library"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
+    "markdown-it-py>=4.2.0",
     "pydantic>=2.14.3",
 ]
 
 [project.scripts]
 book-search = "book_companion.search.cli:main"
 book-convert = "book_companion.convert.cli:main"
+book-view = "book_companion.view.cli:main"
 
 [dependency-groups]
 dev = [
