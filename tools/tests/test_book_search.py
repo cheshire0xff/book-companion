@@ -415,3 +415,65 @@ def test_series_rejects_book_folder_without_volume_prefix(tmp_path, capsys):
         progress("finished", book="1"), encoding="utf-8")
     code, _, err = run(capsys, "check", str(tmp_path / "series"))
     assert code == 2 and "volume prefix" in err
+
+
+# -- start points, output budget and continuation -----------------------------
+
+def test_start_chapter_skips_earlier_chapters(flat, capsys):
+    book = flat(progress("finished"))
+    out = run(capsys, "search", book, "gate|Gilliam", "--regex", "--start-chapter", "3")[1]
+    assert "starting at: section 5" in out
+    assert "**Gilliam**" in out and "**gate**" not in out
+
+
+def test_start_and_end_make_a_range(flat, capsys):
+    book = flat(progress("finished"))
+    out = run(capsys, "search", book, "tattoo|Gilliam|Quiet|final", "--regex",
+              "--start-chapter", "2", "--chapter", "3")[1]
+    assert "**tattoo**" in out and "**Gilliam**" in out
+    assert "**Quiet**" not in out and "**final**" not in out
+
+
+def test_start_after_end_is_an_error(flat, capsys):
+    code, _, err = run(capsys, "search", flat(), "gate", "--start-chapter", "4")
+    assert code == 2 and "after the end" in err
+
+
+def test_start_never_widens_past_progress(flat, capsys):
+    code, _, err = run(capsys, "search", flat(), "Gilliam", "--start-chapter", "3")
+    assert code == 2 and "after the end" in err  # chapter 3 is past progress (chapter 2)
+
+
+def test_series_start_needs_start_book(series, capsys):
+    root = series(progress("finished", book="2"))
+    code, _, err = run(capsys, "search", root, "gamma", "--start-chapter", "1")
+    assert code == 2 and "--start-book" in err
+    out = run(capsys, "search", root, "gate|gamma", "--regex", "--start-book", "2")[1]
+    assert "**gamma**" in out and "**gate**" not in out
+
+
+def test_chapters_listing_honours_start(flat, capsys):
+    out = run(capsys, "chapters", flat(progress("finished")), "--start-chapter", "4")[1]
+    assert "Chapter 4: Aftermath" in out and "Chapter 2: The Garden" not in out
+
+
+def test_output_budget_prints_continuation_that_resumes(flat, capsys):
+    book = flat(progress("finished"))
+    out = run(capsys, "search", book, "a", "--max-chars", "1")[1]  # one hit per page
+    assert "Output limit reached" in out and "Remaining matches by section" in out
+    flags = out.split("Continue: rerun with  ")[1].split("  (")[0].split()
+    assert flags[0] == "--start-section"
+    resumed = run(capsys, "search", book, "a", "--max-chars", "1", *flags)[1]
+    first_hit = [line for line in resumed.splitlines() if line.startswith("  ¶")][0]
+    assert first_hit not in out  # the next page starts with a hit not shown before
+
+
+def test_capture_groups_limit_highlighting(flat, capsys):
+    out = run(capsys, "search", flat(), r"(Valka).{0,40}(fine)", "--regex")[1]
+    assert "**Valka**" in out and "**fine**" in out and "**Valka’s tattoo" not in out
+
+
+def test_word_applies_to_regex_ends(flat, capsys):
+    book = flat()
+    assert "No matches" in run(capsys, "search", book, "Val|gat", "--regex", "--word")[1]
+    assert "**gate**" in run(capsys, "search", book, "Valka|gate", "--regex", "--word")[1]

@@ -83,9 +83,22 @@ uv run tools/book_search.py read     <series-dir> --book 1 --chapter 46       # 
 uv run tools/book_search.py chapters <series-dir>                             # sections within the boundary
 ```
 
-The recorded story point decides what is searchable: earlier books in full, the current book up to its boundary, later books not at all. Results name the book, chapter and section. The tool also skips each book's contents page, so later chapter titles cannot surface. Useful search options: `--word`, `--regex`, `--context N` (whole paragraphs around each hit), `--count` (matches per section), `--max N`. `read` also takes `--section N` and `--from P --to Q` (paragraphs). Run `--help` for the rest.
+The recorded story point decides what is searchable: earlier books in full, the current book up to its boundary, later books not at all. Results name the book, chapter and section. The tool also skips each book's contents page, so later chapter titles cannot surface. Useful search options: `--word`, `--regex`, `--context N` (whole paragraphs around each hit), `--count` (matches per section). `read` also takes `--section N` and `--from P --to Q` (paragraphs). Run `--help` for the rest.
 
-`--book/--chapter/--part/--section` on `search` and `chapters` **narrow** the boundary to an earlier story point: earlier books up to their progress, the given book up to that point, later books not at all. Narrowing is always allowed. Use it when an answer or image should reflect an earlier point in the story.
+`--book/--chapter/--part/--section` on `search` and `chapters` **narrow** the boundary to an earlier story point: earlier books up to their progress, the given book up to that point, later books not at all. `--start-book/--start-chapter/--start-part/--start-section` make the search begin later. Together they give a range, for example only chapters 66–71:
+
+```powershell
+uv run tools/book_search.py search <series-dir> "Kalima" --word --start-book 1 --start-chapter 66 --book 1 --chapter 71
+```
+
+Narrowing and start points are always allowed; they never widen past recorded progress. Use them when an answer or image should reflect a particular stretch of the story.
+
+Search efficiently:
+
+1. Start with `--count` to see which chapters a name or term appears in, then search or `read` just those.
+2. Use `--word` for names and short terms, so they do not match inside other words. It also works with `--regex`, where it applies to the two ends of the whole pattern.
+3. For descriptive passages, search for a name near a keyword, with capture groups so only the keywords are highlighted: `"(Anaïs).{0,300}(hair|eyes|silk)" --regex`.
+4. Output stops after `--max-chars` (default 12000). The tool then lists the remaining matches by section and prints the `--start-book/--start-section/--start-paragraph` flags that continue from the next hit. Rerun with those flags to read the next page, or narrow the search instead if the remaining sections are not relevant.
 
 Before answering a question about the story, a character, a location, a faction, an object, or an image:
 

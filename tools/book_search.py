@@ -51,6 +51,11 @@ concepts:
             point. Anything past recorded progress, including --all, needs
             --allow-spoilers, which is only for when the user explicitly
             allowed it for that request.
+  start     --start-book/--start-chapter/--start-part/--start-section make a
+            search or listing begin later, e.g. only chapters 66-71 with
+            --start-chapter 66 --chapter 71. When search output reaches
+            --max-chars, the tool prints the --start-* flags (down to
+            --start-paragraph) that continue from the next hit.
 """
 
 OPF_NS = "{http://www.idpf.org/2007/opf}"
@@ -757,22 +762,48 @@ def compile_query(query: str, regex: bool, word: bool, case_sensitive: bool) -> 
         raise BookError(f"Invalid regular expression: {exc}") from exc
 
 
-def find_spans(text: str, pattern: re.Pattern[str]) -> list[tuple[int, int]]:
+Span = tuple[int, int]
+Match = list[Span]  # the spans to highlight for one match
+
+
+def _merge(spans: list[Span]) -> list[Span]:
+    merged: list[Span] = []
+    for start, end in sorted(spans):
+        if merged and start <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(end, merged[-1][1]))
+        else:
+            merged.append((start, end))
+    return merged
+
+
+def find_matches(text: str, pattern: re.Pattern[str]) -> list[Match]:
+    """Every match in `text`, each as the spans to highlight.
+
+    When the pattern has capture groups, only the groups are highlighted, so
+    `(Anaïs).{0,300}(hair|eyes)` bolds the two keywords rather than the gap.
+    """
     folded, origin = fold(text)
-    return [(origin[m.start()], origin[m.end() - 1] + 1)
-            for m in pattern.finditer(folded) if m.end() > m.start()]
+    matches: list[Match] = []
+    for m in pattern.finditer(folded):
+        if m.end() <= m.start():
+            continue
+        raw = [m.span(g) for g in range(1, pattern.groups + 1)
+               if m.start(g) != -1 and m.end(g) > m.start(g)] or [m.span()]
+        matches.append(_merge([(origin[s], origin[e - 1] + 1) for s, e in raw]))
+    return matches
 
 
-def highlight(text: str, spans: list[tuple[int, int]]) -> str:
+def highlight(text: str, spans: list[Span]) -> str:
     out, pos = [], 0
-    for start, end in spans:
+    for start, end in _merge(spans):
         out += [text[pos:start], "**", text[start:end], "**"]
         pos = end
     return "".join(out + [text[pos:]])
 
 
-def snippet(text: str, spans: list[tuple[int, int]], width: int = 160) -> str:
-    start, end = spans[0]
+def snippet(text: str, matches: list[Match], width: int = 160) -> str:
+    """The first match with some context on either side, all matches highlighted."""
+    start, end = matches[0][0][0], matches[0][-1][1]
     a, b = max(0, start - width), min(len(text), end + width)
     if a > 0:
         space = text.find(" ", a, start)
@@ -780,7 +811,7 @@ def snippet(text: str, spans: list[tuple[int, int]], width: int = 160) -> str:
     if b < len(text):
         space = text.rfind(" ", end, b)
         b = space if space != -1 else b
-    inside = [(s - a, e - a) for s, e in spans if s >= a and e <= b]
+    inside = [(s - a, e - a) for match in matches for s, e in match if s >= a and e <= b]
     return ("…" if a > 0 else "") + highlight(text[a:b], inside) + ("…" if b < len(text) else "")
 
 
@@ -794,14 +825,68 @@ def _location(target: Target, volume: Volume, section: Section | None) -> str:
     return f"{prefix}{section.heading}  ({where})"
 
 
-def allowed_text(target: Target, scopes: list[Scope]) -> list[tuple[str, list[str]]]:
-    blocks: list[tuple[str, list[str]]] = []
-    for volume, scope in target.selected(scopes):
-        if not scope.included:
+@dataclass(frozen=True)
+class Start:
+    """Where a search or listing begins (it only ever narrows)."""
+
+    volume_index: int
+    section: int  # section number; 0 = the book's front matter
+    paragraph: int  # 0-based paragraph index within that section
+
+    def describe(self, target: Target) -> str:
+        volume = target.volumes[self.volume_index]
+        book = f"book {volume.number}, " if target.is_series else ""
+        where = f"section {self.section}" if self.section else "front matter"
+        paragraph = f", ¶{self.paragraph + 1}" if self.paragraph else ""
+        return f"{book}{where}{paragraph}"
+
+
+def resolve_start(target: Target, args: argparse.Namespace) -> Start | None:
+    paragraph = getattr(args, "start_paragraph", None)
+    values = (args.start_book, args.start_chapter, args.start_section, args.start_part, paragraph)
+    if all(value is None for value in values):
+        return None
+    if args.start_part is not None and args.start_chapter is None:
+        raise BookError("--start-part is only used together with --start-chapter.")
+    if target.is_series and target.only is None and args.start_book is None:
+        raise BookError("In a series directory, a start point needs --start-book N.")
+    volume = target.volume(args.start_book)
+    if args.start_chapter is not None:
+        section = find_chapter(volume.book, args.start_chapter, args.start_part).number
+    elif args.start_section is not None:
+        section = volume.book.section(args.start_section).number
+    else:
+        section = 0
+    return Start(target.volumes.index(volume), section, (paragraph or 1) - 1)
+
+
+@dataclass
+class Block:
+    """A run of paragraphs that may be searched: one section, or a book's front matter."""
+
+    volume: Volume
+    section: Section | None  # None = front matter
+    paragraphs: list[str]
+    first: int = 0  # first paragraph index to search (a start point)
+
+
+def allowed_text(target: Target, scopes: list[Scope], start: Start | None) -> list[Block]:
+    blocks: list[Block] = []
+    for index, (volume, scope) in enumerate(zip(target.volumes, scopes)):
+        if target.only is not None and volume.number != target.only:
             continue
-        blocks.append((_location(target, volume, None), volume.book.front))
-        blocks += [(_location(target, volume, s), s.paragraphs)
-                   for s in volume.book.sections if scope.allows(s)]
+        if not scope.included or (start is not None and index < start.volume_index):
+            continue
+        here = start is not None and index == start.volume_index
+        if not here or start.section == 0:
+            blocks.append(Block(volume, None, volume.book.front, start.paragraph if here else 0))
+        for section in volume.book.sections:
+            if not scope.allows(section) or (here and section.number < start.section):
+                continue
+            first = start.paragraph if here and section.number == start.section else 0
+            blocks.append(Block(volume, section, section.paragraphs, first))
+    if start is not None and not blocks:
+        raise BookError("The start point is after the end of the searchable range.")
     return blocks
 
 
@@ -817,65 +902,109 @@ def print_header(target: Target, scopes: list[Scope], verb: str) -> None:
                         "Ask the user what they have read.")
 
 
+@dataclass
+class Hit:
+    block: Block
+    index: int  # paragraph index within the block
+    matches: list[Match]
+
+
+def _counts_by_section(target: Target, hits: list[Hit]) -> list[str]:
+    counts: dict[int, list] = {}
+    for hit in hits:
+        counts.setdefault(id(hit.block), [hit.block, 0])[1] += len(hit.matches)
+    return [f"  {n:4}  {_location(target, b.volume, b.section)}" for b, n in counts.values()]
+
+
+def _continue_flags(target: Target, hit: Hit) -> str:
+    flags = [f"--start-book {hit.block.volume.number}"] if target.is_series else []
+    if hit.block.section is not None:
+        flags.append(f"--start-section {hit.block.section.number}")
+    flags.append(f"--start-paragraph {hit.index + 1}")
+    return " ".join(flags)
+
+
+def _print_hits(target: Target, hits: list[Hit], args: argparse.Namespace) -> int:
+    """Print hits until the character budget is used up; return how many were shown."""
+    by_block: dict[int, dict[int, list[Match]]] = {}
+    for hit in hits:
+        by_block.setdefault(id(hit.block), {})[hit.index] = hit.matches
+    used = shown = 0
+    current: Block | None = None
+    printed: set[int] = set()
+    last: int | None = None
+    for hit in hits:
+        block = hit.block
+        same_block = block is current
+        lines = [] if same_block else [f"\n## {_location(target, block.volume, block.section)}"]
+        new_printed = set(printed) if same_block else set()
+        new_last = last if same_block else None
+        if args.context or args.full:
+            first = max(0, hit.index - args.context)
+            stop = min(len(block.paragraphs), hit.index + args.context + 1)
+            for j in range(first, stop):
+                if j in new_printed:
+                    continue
+                if new_last is not None and j != new_last + 1:
+                    lines.append("   ⋮")
+                matches = by_block[id(block)].get(j)
+                text = (highlight(block.paragraphs[j], [s for m in matches for s in m])
+                        if matches else block.paragraphs[j])
+                lines.append(f"{'»' if matches else ' '} ¶{j + 1}  {text}")
+                new_printed.add(j)
+                new_last = j
+        else:
+            extra = f"  (+{len(hit.matches) - 1} more)" if len(hit.matches) > 1 else ""
+            lines.append(f"  ¶{hit.index + 1}  "
+                         f"{snippet(block.paragraphs[hit.index], hit.matches)}{extra}")
+        text = "\n".join(lines)
+        if shown and used + len(text) > args.max_chars:
+            break
+        if text:
+            print(text)
+            used += len(text) + 1
+        shown += 1
+        current, printed, last = block, new_printed, new_last
+    return shown
+
+
 def cmd_search(target: Target, args: argparse.Namespace) -> None:
     scopes = resolve_scopes(target, args)
+    start = resolve_start(target, args)
     pattern = compile_query(args.query, args.regex, args.word, args.case_sensitive)
     print_header(target, scopes, "Searching")
+    blocks = allowed_text(target, scopes, start)
+    if start is not None:
+        print(f"  starting at: {start.describe(target)}")
 
-    hits: list[tuple[str, list[str], dict[int, list[tuple[int, int]]]]] = []
-    total_matches = total_paragraphs = 0
-    for name, paragraphs in allowed_text(target, scopes):
-        found = {}
-        for i, paragraph in enumerate(paragraphs):
-            spans = find_spans(paragraph, pattern)
-            if spans:
-                found[i] = spans
-                total_matches += len(spans)
-        if found:
-            hits.append((name, paragraphs, found))
-            total_paragraphs += len(found)
-
+    hits = [Hit(block, i, matches)
+            for block in blocks
+            for i in range(block.first, len(block.paragraphs))
+            if (matches := find_matches(block.paragraphs[i], pattern))]
     if not hits:
         print(f"\nNo matches for {args.query!r} within the boundary.")
         return
-    print(f"\n{args.query!r}: {total_matches} matches in {total_paragraphs} paragraphs "
-          f"across {len(hits)} sections")
+    sections = len({id(hit.block) for hit in hits})
+    print(f"\n{args.query!r}: {sum(len(h.matches) for h in hits)} matches in {len(hits)} "
+          f"paragraphs across {sections} sections")
 
     if args.count:
-        for name, _, found in hits:
-            print(f"  {sum(len(s) for s in found.values()):4}  {name}")
+        print("\n".join(_counts_by_section(target, hits)))
         return
 
-    shown = 0
-    for name, paragraphs, found in hits:
-        if shown >= args.max:
-            break
-        print(f"\n## {name}")
-        if args.context or args.full:
-            wanted = sorted({j for i in found
-                             for j in range(max(0, i - args.context),
-                                            min(len(paragraphs), i + args.context + 1))})
-            previous = None
-            for j in wanted:
-                if j in found and shown >= args.max:
-                    break
-                if previous is not None and j != previous + 1:
-                    print("   ⋮")
-                marker = "»" if j in found else " "
-                text = highlight(paragraphs[j], found[j]) if j in found else paragraphs[j]
-                print(f"{marker} ¶{j + 1}  {text}")
-                shown += j in found
-                previous = j
-        else:
-            for i, spans in found.items():
-                if shown >= args.max:
-                    break
-                extra = f"  (+{len(spans) - 1} more)" if len(spans) > 1 else ""
-                print(f"  ¶{i + 1}  {snippet(paragraphs[i], spans)}{extra}")
-                shown += 1
-    if shown < total_paragraphs:
-        print(f"\n… {total_paragraphs - shown} more matching paragraphs not shown; "
-              "narrow the query, use --count, or raise --max.")
+    shown = _print_hits(target, hits, args)
+    if shown < len(hits):
+        rest = hits[shown:]
+        print(f"\n--- Output limit reached (--max-chars {args.max_chars}): "
+              f"{shown} of {len(hits)} matching paragraphs shown.")
+        print("Remaining matches by section:")
+        remaining = _counts_by_section(target, rest)
+        print("\n".join(remaining[:25]))
+        if len(remaining) > 25:
+            print(f"  … and {len(remaining) - 25} more sections")
+        print(f"Continue: rerun with  {_continue_flags(target, rest[0])}  "
+              "(replacing any --start-* flags).")
+        print("Or narrow it: a tighter query, --word, or a --start-*/--chapter range.")
 
 
 def cmd_read(target: Target, args: argparse.Namespace) -> None:
@@ -912,16 +1041,23 @@ def cmd_read(target: Target, args: argparse.Namespace) -> None:
 
 def cmd_chapters(target: Target, args: argparse.Namespace) -> None:
     scopes = resolve_scopes(target, args)
+    start = resolve_start(target, args)
     print_header(target, scopes, "Table of contents of")
-    for volume, scope in target.selected(scopes):
-        if not scope.included:
+    allowed_text(target, scopes, start)  # validates the start point
+    for index, (volume, scope) in enumerate(zip(target.volumes, scopes)):
+        if target.only is not None and volume.number != target.only:
             continue
+        if not scope.included or (start is not None and index < start.volume_index):
+            continue
+        here = start is not None and index == start.volume_index
         book = volume.book
         print(f"\n## {volume.name}")
         part_column = f"{'part':>4}  " if book.has_parts else ""
         print(f"{'section':>7}  {part_column}{'ch':>4}  {'¶':>4}  label")
         hidden = 0
         for section in book.sections:
+            if here and section.number < start.section:
+                continue
             if not scope.allows(section):
                 hidden += 1
                 continue
@@ -1049,6 +1185,22 @@ def build_parser() -> argparse.ArgumentParser:
         group.add_argument("--part", type=_positive, metavar="P",
                            help="with --chapter, when numbering restarts in each part")
 
+    def add_start(p: argparse.ArgumentParser, with_paragraph: bool) -> None:
+        group = p.add_argument_group("start point (optional; begins later, never needs permission)")
+        group.add_argument("--start-book", type=_positive, metavar="N",
+                           help="volume number to start in, in a series directory")
+        exclusive = group.add_mutually_exclusive_group()
+        exclusive.add_argument("--start-chapter", type=_positive, metavar="N",
+                               help="start at this chapter")
+        exclusive.add_argument("--start-section", type=_positive, metavar="N",
+                               help="start at this section")
+        group.add_argument("--start-part", type=_positive, metavar="P",
+                           help="with --start-chapter, when numbering restarts in each part")
+        if with_paragraph:
+            group.add_argument("--start-paragraph", type=_positive, metavar="P",
+                               help="start at this paragraph of the start section (or of "
+                                    "the front matter, without a section)")
+
     def add_spoilers(p: argparse.ArgumentParser, with_all: bool) -> None:
         if with_all:
             p.add_argument("--all", action="store_true",
@@ -1066,6 +1218,7 @@ def build_parser() -> argparse.ArgumentParser:
                               epilog=CONCEPTS, formatter_class=formatter)
     add_target(chapters)
     add_point(chapters, "story point (narrows the boundary; default: reading progress)")
+    add_start(chapters, with_paragraph=False)
     add_spoilers(chapters, with_all=True)
 
     search = sub.add_parser(Command.SEARCH, help="search text within the boundary",
@@ -1073,17 +1226,23 @@ def build_parser() -> argparse.ArgumentParser:
     add_target(search)
     search.add_argument("query")
     add_point(search, "story point (narrows the boundary; default: reading progress)")
+    add_start(search, with_paragraph=True)
     add_spoilers(search, with_all=True)
     output = search.add_argument_group("matching and output")
-    output.add_argument("--regex", action="store_true", help="treat the query as a regex")
-    output.add_argument("--word", action="store_true", help="match whole words only")
+    output.add_argument("--regex", action="store_true",
+                        help="treat the query as a regular expression; if it has capture "
+                             "groups ( ), only the groups are highlighted")
+    output.add_argument("--word", action="store_true",
+                        help="match whole words only; works with --regex, where it "
+                             "applies to the two ends of the whole pattern")
     output.add_argument("--case-sensitive", action="store_true")
     output.add_argument("--context", type=int, default=0, metavar="N",
                         help="show N whole paragraphs around each hit")
     output.add_argument("--full", action="store_true", help="show whole matching paragraphs")
     output.add_argument("--count", action="store_true", help="only count matches per section")
-    output.add_argument("--max", type=_positive, default=40, metavar="N",
-                        help="max paragraphs to show (default 40)")
+    output.add_argument("--max-chars", type=_positive, default=12000, metavar="N",
+                        help="stop printing results after about N characters (default "
+                             "12000) and print the --start-* flags that continue")
 
     read = sub.add_parser(Command.READ, help="print a chapter or section within the boundary",
                           epilog=CONCEPTS, formatter_class=formatter)
