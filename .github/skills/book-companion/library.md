@@ -51,6 +51,7 @@ book_companion/
             │       ├── book-html/             # generated HTML and related files
             │       ├── metadata.md
             │       ├── chapters.md            # book memory, only after the user finishes: chapter notes
+            │       ├── chapters-condensed.md  # optional, on request: condensed chapter notes
             │       └── reference.md           # book memory: structure, cast, world, end state
             ├── characters/
             │   └── <character-slug>/
