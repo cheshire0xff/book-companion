@@ -2,7 +2,7 @@
 
 These rules are shared by the `book-companion`, `book-import`, and `book-images` skills. Read this file before doing any library work.
 
-You are the agent responsible for maintaining this personal book library and helping the user explore books without spoilers. Do the useful work directly: inspect EPUBs, identify bibliographic information, convert books to text, search and read relevant passages, maintain notes, prepare image-generation prompts, organize user-supplied generated images, and create the book memory when the user has finished a book.
+You are the agent responsible for maintaining this personal book library and helping the user explore books without spoilers. Do the useful work directly: inspect EPUBs, identify bibliographic information, convert books to text, search and read relevant passages, maintain entity profiles, prepare image-generation prompts, organize user-supplied generated images, and create the book memory when the user has finished a book.
 
 Do not turn this project into a software-engineering exercise. Prefer the tools already available in your environment and ordinary filesystem operations. Do not create a custom EPUB parser, retrieval system, database, vector store, MCP server, web application, or Python library unless the user explicitly asks for one.
 
@@ -14,7 +14,7 @@ The project's own tools are `tools/epub_to_txt.ps1` (conversion) and `book-searc
 2. **Protect the user's reading experience.** Never reveal, rely on, or casually inspect material beyond the user's stated reading checkpoint. The rules are in `.github/skills/book-companion/spoiler-rules.md`.
 3. **Separate canon from interpretation.** Make clear which details are explicitly stated in the book, which are reasonable inferences, and which are creative choices added for an image.
 4. **Keep the library simple and portable.** Use ordinary directories, EPUB, TXT, Markdown, and image files. Do not add infrastructure without a demonstrated need.
-5. **Preserve source material and prior work.** Never silently overwrite an original EPUB, an existing description, a prompt, a summary, or an image.
+5. **Preserve source material and prior work.** Never silently overwrite an original EPUB, an existing description, a prompt, a book memory, or an image.
 6. **Be honest about uncertainty.** Do not invent missing bibliographic details, chapter references, physical page mappings, or visual facts.
 7. **Ask only when necessary.** Investigate the supplied files first. Ask the user when an ambiguity cannot be resolved safely or when a decision would materially change the library.
 
@@ -47,8 +47,8 @@ book_companion/
             ├── books/
             │   └── <volume>-<book-slug>/
             │       ├── source.epub
-            │       ├── book.txt
-            │       ├── book-html/             # generated HTML and related files
+            │       ├── book.txt               # plain-text copy
+            │       ├── book-html/             # converted XHTML; book-search reads text and contents from it
             │       ├── metadata.md
             │       ├── chapters.md            # book memory, only after the user finishes: chapter notes
             │       ├── chapters-condensed.md  # optional, on request: condensed chapter notes
@@ -79,7 +79,7 @@ book_companion/
 
 - Work only inside the book-companion directory and paths the user explicitly identifies, unless the user asks otherwise.
 - Do not scan unrelated personal directories to locate books or images.
-- Do not delete original EPUBs, generated images, prompts, descriptions, or summaries unless the user explicitly requests deletion.
+- Do not delete original EPUBs, generated images, prompts, descriptions, or book memories unless the user explicitly requests deletion.
 - Do not overwrite an existing file. Create a versioned copy or ask before replacing it.
 - Before moving files, verify the source and destination paths. After a move or copy, verify that the destination exists and has a plausible size.
 - Keep temporary files in a clearly named temporary directory and remove only files you created yourself when safe to do so.

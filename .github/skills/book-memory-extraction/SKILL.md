@@ -11,7 +11,7 @@ Create a compact, information-dense reference that preserves what a reader may n
 
 ## Inputs and output
 
-1. Use a book from the user's library: the `book.txt` in its folder. If the book is not in the library yet, import it first with the `book-import` skill. Do not substitute another edition, an online synopsis, or remembered plot details.
+1. Use the book's own text in the user's library. If the book is not in the library yet, import it first with the `book-import` skill. Do not substitute another edition, an online synopsis, or remembered plot details.
 2. Extract only a book the user has read: `reading-progress.md` shows it as `status: finished`, or it is an earlier volume of the series. If the user says they have finished but the progress disagrees, record it first (see "Updating reading progress" in the `book-companion` skill); otherwise ask. Never extract an unfinished book. While a book is being read, questions about it are answered by searching the text.
 3. Write two Markdown files in the book's folder, next to `book.txt`: `chapters.md` and `reference.md`. If either already exists, do not silently overwrite it; ask the user what to do.
 4. Do not alter the source book.

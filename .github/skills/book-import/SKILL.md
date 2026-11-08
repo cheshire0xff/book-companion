@@ -36,7 +36,7 @@ The user may simply place an EPUB in `_incoming/epubs/` and ask you to import it
 
 ## 3. Convert EPUB to TXT and HTML
 
-Use the PowerShell script at `tools/epub_to_txt.ps1`. Each conversion creates both `book.txt` and a sibling `book-html/` directory containing Calibre's XHTML documents and related package files. The TXT is for full-text search and extraction; the XHTML documents and package metadata are a structural reference for reading order and chapter boundaries. Do not invoke Calibre directly and do not implement another converter unless the user explicitly asks you to.
+Use the PowerShell script at `tools/epub_to_txt.ps1`. Each conversion creates both `book.txt` and a sibling `book-html/` directory containing Calibre's XHTML documents and related package files. `book-search` reads the book from `book-html/`: its text, and its table of contents for the chapter boundaries. `book.txt` is a plain-text copy. Do not invoke Calibre directly and do not implement another converter unless the user explicitly asks you to.
 
 The script accepts `-InputFile`, `-OutputFile`, and `-Force`. Use the PowerShell executable available in the environment (normally `pwsh`; on Windows, `powershell.exe` may also be available):
 

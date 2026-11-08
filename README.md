@@ -1,12 +1,13 @@
 # Book Companion
 
-A local book library managed by an AI agent (GitHub Copilot or Claude Code) in VS Code. The library itself is ordinary files and folders. Three skills handle the work:
+A local book library managed by an AI agent (GitHub Copilot or Claude Code) in VS Code. The library itself is ordinary files and folders. Four skills handle the work:
 
 | Skill | Use it for |
 | --- | --- |
 | `/book-import` | Importing an EPUB from `_incoming/epubs/` |
 | `/book-images` | Preparing image prompts and importing generated images |
-| `/book-companion` | Spoiler-safe questions, entity profiles, reading progress, summaries |
+| `/book-companion` | Spoiler-safe questions, entity profiles, reading progress |
+| `/book-memory-extraction` | The book memory of a finished book, and condensing it |
 
 You can also just ask in plain language; the agent picks the skill from its description. Shared rules live in `.github/skills/book-companion/library.md` (layout, file safety) and `spoiler-rules.md` (reading boundary), which the skills read before working.
 
@@ -32,7 +33,7 @@ You can also just ask in plain language; the agent picks the skill from its desc
 
 You usually do not need to provide bibliographic details yourself. If the EPUB, front matter, and reliable web sources still do not establish the series or volume, the agent will ask you rather than guess.
 
-Each imported book keeps `book.txt` for full-text search and extraction, plus `book-html/` for structural checks such as chapter order and boundaries. The HTML package contains separate XHTML documents and related package files. If TXT headings are ambiguous because of a table of contents or repeated markers, the agent should use that output to verify narrative order while respecting your spoiler boundary; it must not inspect later chapter titles or content.
+Each imported book keeps `book-html/`, from which `book-search` reads both the text and the chapter structure (the EPUB's table of contents), plus `book.txt`, a plain-text copy. The import checks the structure with `book-search check`, which reports only counts, so no chapter titles or story text are seen.
 
 ## Keep your reading progress current
 
@@ -81,13 +82,16 @@ The agent matches the filename to the prepared prompt sidecar, moves or renames 
 
 There is no required number of images per character or location. Create images when they are useful or requested.
 
-## Summaries
+## Book memory
 
-Full-book summaries and memory extraction use the **`book-memory-extraction`** skill, located alongside `book-companion` under `.github/skills/`. The Book Companion skill handles the library and spoiler checks, then delegates the actual extraction methodology to its sibling skill.
+When you finish a book, say so and ask for its memory, for example: **`/book-memory-extraction I've finished Empire of Silence.`** The agent records the book as finished in `reading-progress.md` if it isn't yet, reads the whole book with `book-search`, and writes two files in the book's folder:
 
-When you finish a book, say so explicitly and ask for a summary, for example: **`/book-companion I've finished Empire of Silence. Create the book memory.`** The agent should check `reading-progress.md`, invoke the extraction skill with the book's `book.txt`, and preserve any memory artifacts it produces. The primary summary is saved as Markdown in `summary.md` unless you specify another structure.
+- `chapters.md`: chapter-by-chapter notes;
+- `reference.md`: structure and chronology, characters, world, open threads, and the end state.
 
-The agent must not run full-book extraction before you have finished the book or explicitly authorized spoilers.
+They are spoiler-complete notes for recalling the book later, for example before you start the next volume. They are long; for a shorter version, ask to condense it: **`/book-memory-extraction Condense the Empire of Silence memory.`** That writes `chapters-condensed.md` from `chapters.md` and keeps the full files.
+
+There is no memory for a book you haven't finished. While you are reading, questions and recaps are answered from the text up to your progress.
 
 ## Where things live
 
