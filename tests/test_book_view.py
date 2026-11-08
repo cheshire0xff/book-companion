@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
+import http.client
 import threading
 import urllib.request
+from collections.abc import Iterator
+from http.server import ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 import pytest
 
-from book_companion.view.cli import Response, main, make_server, respond
+from book_companion.view.app import PALETTE_COOKIE, App
+from book_companion.view.cli import main
+from book_companion.view.layout import PALETTE_PATH
+from book_companion.view.server import make_server
+from book_companion.view.themes import DEFAULT_PALETTE, PALETTES
+from book_companion.view.web import Request, Response
 
 PNG = b"\x89PNG\r\n\x1a\nfake png"
 SERIES = "/books/jane-doe/night-saga/"
@@ -62,16 +70,27 @@ def library(tmp_path: Path) -> Path:
     return root
 
 
-def get(root: Path, url: str) -> Response:
-    response = respond(root, url)
+def respond(root: Path, url: str, cookie: str | None = None) -> Response:
+    return App(root).handle(Request.parse("GET", url, cookie))
+
+
+def post(root: Path, url: str, form: dict[str, str]) -> Response:
+    return App(root).handle(Request.parse("POST", url, body=urlencode(form).encode()))
+
+
+def get(root: Path, url: str, cookie: str | None = None) -> Response:
+    response = respond(root, url, cookie)
     assert response.status == 200, url
     return response
 
 
-def page(root: Path, url: str) -> str:
-    response = get(root, url)
+def page(root: Path, url: str, cookie: str | None = None) -> str:
+    response = get(root, url, cookie)
     assert response.content_type == "text/html; charset=utf-8"
     return response.body.decode("utf-8")
+
+
+# Library pages
 
 
 def test_index_lists_series_and_standalone_books(library: Path) -> None:
@@ -140,15 +159,18 @@ def test_broken_progress_shows_an_error_and_hides_every_memory_note(library: Pat
     "/../library/books/",
     "/books/jane-doe/night-saga/%2e%2e/%2e%2e/%2e%2e/",
     "/C:/Windows/win.ini",
+    "/static/../app.py",
+    "/static/%2e%2e/app.py",
+    "/static/missing.css",
     "/nope",
 ])
-def test_only_discovered_pages_and_images_are_served(library: Path, url: str) -> None:
+def test_only_discovered_pages_and_files_are_served(library: Path, url: str) -> None:
     assert respond(library, url).status == 404
 
 
 def test_folder_without_trailing_slash_redirects(library: Path) -> None:
     response = respond(library, SERIES.rstrip("/"))
-    assert (response.status, response.location) == (301, SERIES)
+    assert (response.status, response.header("Location")) == (301, SERIES)
 
 
 def test_non_ascii_names_round_trip(library: Path) -> None:
@@ -159,19 +181,85 @@ def test_non_ascii_names_round_trip(library: Path) -> None:
     assert "<h1>Zoë</h1>" in page(library, link)
 
 
-def test_server_serves_pages(library: Path) -> None:
-    server = make_server(library, 0)
+def test_other_methods_are_refused(library: Path) -> None:
+    assert post(library, SERIES, {}).status == 405
+
+
+# Static files and palettes
+
+
+def test_stylesheet_and_icon_are_served(library: Path) -> None:
+    css = get(library, "/static/style.css")
+    assert css.content_type == "text/css; charset=utf-8" and b"var(--bg)" in css.body
+    assert get(library, "/static/icon.svg").content_type == "image/svg+xml"
+    html = page(library, "/")
+    assert '<link rel="stylesheet" href="/static/style.css">' in html
+
+
+def test_pages_use_the_default_palette_without_a_cookie(library: Path) -> None:
+    html = page(library, SERIES).replace("&amp;", "&")
+    default = next(p for p in PALETTES if p.key == DEFAULT_PALETTE)
+    assert f'data-palette="{DEFAULT_PALETTE}"' in html
+    assert f"<summary>Palette: {default.name}</summary>" in html
+    for palette in PALETTES:  # the menu offers every palette, marking the current one
+        pressed = "true" if palette is default else "false"
+        assert (f'value="{palette.key}" aria-pressed="{pressed}">{palette.name}</button>'
+                in html)
+    assert f'<input type="hidden" name="next" value="{SERIES}">' in html
+
+
+def test_choosing_a_palette_sets_a_cookie_and_returns_to_the_page(library: Path) -> None:
+    response = post(library, PALETTE_PATH, {"palette": "midnight", "next": MIRA})
+    assert (response.status, response.header("Location")) == (303, MIRA)
+    cookie = response.header("Set-Cookie") or ""
+    assert cookie.startswith(f"{PALETTE_COOKIE}=midnight;") and "Path=/" in cookie
+    midnight = next(p for p in PALETTES if p.key == "midnight")
+    html = page(library, MIRA, cookie=f"{PALETTE_COOKIE}=midnight")
+    assert 'data-palette="midnight"' in html and midnight.dark.accent in html
+
+
+@pytest.mark.parametrize("target", ["//evil.example/", "https://evil.example/", "\\\\evil", ""])
+def test_the_palette_picker_only_returns_to_this_site(library: Path, target: str) -> None:
+    response = post(library, PALETTE_PATH, {"palette": "velvet", "next": target})
+    assert response.header("Location") == "/"
+
+
+def test_unknown_palettes_are_refused_or_ignored(library: Path) -> None:
+    assert post(library, PALETTE_PATH, {"palette": "neon"}).status == 400
+    html = page(library, "/", cookie=f"{PALETTE_COOKIE}=neon")
+    assert f'data-palette="{DEFAULT_PALETTE}"' in html
+
+
+# The server and the command
+
+
+@pytest.fixture
+def server(library: Path) -> Iterator[ThreadingHTTPServer]:
+    server = make_server(App(library), 0)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
+    yield server
+    server.shutdown()
+    server.server_close()
+    thread.join()
+
+
+def test_server_serves_pages(server: ThreadingHTTPServer) -> None:
+    with urllib.request.urlopen(f"http://127.0.0.1:{server.server_port}/", timeout=10) as reply:
+        assert reply.status == 200
+        assert "The Night Saga" in reply.read().decode("utf-8")
+
+
+def test_server_accepts_the_palette_form(server: ThreadingHTTPServer) -> None:
+    connection = http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=10)
     try:
-        url = f"http://127.0.0.1:{server.server_port}/"
-        with urllib.request.urlopen(url, timeout=10) as reply:
-            assert reply.status == 200
-            assert "The Night Saga" in reply.read().decode("utf-8")
+        connection.request("POST", PALETTE_PATH, urlencode({"palette": "graphite", "next": "/"}),
+                           {"Content-Type": "application/x-www-form-urlencoded"})
+        reply = connection.getresponse()
+        assert reply.status == 303
+        assert (reply.getheader("Set-Cookie") or "").startswith(f"{PALETTE_COOKIE}=graphite;")
     finally:
-        server.shutdown()
-        server.server_close()
-        thread.join()
+        connection.close()
 
 
 def test_main_rejects_a_folder_without_books(tmp_path: Path,

@@ -114,6 +114,8 @@ Run `book-view` in your library folder (or `book-view path/to/library`). It star
 
 Pages are rendered from the files on every request, so reload after adding an image or editing a note. Memory notes of books past your recorded progress stay behind a "⚠ Spoilers … Show anyway" box until you open it. The viewer never shows a book's text (`book.txt`, `book-html/`, `source.epub`) or anything outside the library. Use `--port N` if 8765 is taken, and `--no-browser` to only print the address.
 
+The "Palette" menu at the top right switches the color palette: Forest & Moss (the default), Midnight & Gold, Parchment & Oxblood, Graphite & Indigo, Velvet Plum or Leather. Your browser remembers the choice in a cookie; light or dark follows your system setting. Palettes are defined in `src/book_companion/view/themes.py`; adding one there adds it to the picker, and the tests check that its text stays readable.
+
 ## Where things live
 
 This repository (the plugin and the `book-search` package):
