@@ -1,6 +1,6 @@
 ---
 name: book-companion
-description: "Use for spoiler-safe questions about books in the user's library (characters, locations, factions, objects, events, setting), maintaining entity profiles, updating reading progress, and creating post-reading summaries. For importing an EPUB use book-import; for image prompts or importing generated images use book-images. Do not use for developing or modifying the Book Companion application or its scripts."
+description: "Use for spoiler-safe questions about books in the user's library (characters, locations, factions, objects, events, setting), maintaining entity profiles, and updating reading progress. For importing an EPUB use book-import; for image prompts or importing generated images use book-images; for the memory or recap of a finished book use book-memory-extraction. Do not use for developing or modifying the Book Companion application or its scripts."
 ---
 
 # Book Companion
@@ -14,7 +14,7 @@ Related skills:
 
 - **`book-import`**: importing an EPUB. If that skill is not loaded, read `.github/skills/book-import/SKILL.md` and follow it.
 - **`book-images`**: preparing image prompts and importing generated images. If that skill is not loaded, read `.github/skills/book-images/SKILL.md` and follow it.
-- **`book-memory-extraction`**: full-book summaries (see section 4).
+- **`book-memory-extraction`**: the book memory of a finished book (see section 4).
 
 ## 1. Answering questions about the book
 
@@ -66,24 +66,8 @@ Rules:
 
 When the user reports progress ("I've finished chapter 18", "I'm on page 247", "I finished the book"), update the front matter of the series' `reading-progress.md` (or the standalone book's) following the "Recording progress" rules in `spoiler-rules.md`, and set `updated`. Then run `uv run book-search check <series-dir>` and tell the user the boundary it reports.
 
-## 4. Summaries and reading notes
+## 4. Book memory
 
-The sibling **`book-memory-extraction`** skill (`.github/skills/book-memory-extraction/SKILL.md`) owns the full-book memory extraction and summary methodology. This skill owns the library workflow and the spoiler gate.
+When the user has finished a book and asks for its memory or a recap, invoke the **`book-memory-extraction`** skill. If it cannot be invoked, read `.github/skills/book-memory-extraction/SKILL.md` and follow it. That skill owns the finished-book check, the method, and its output files (`chapters.md` and `reference.md` in the book's folder); do not substitute your own outline.
 
-### 4.1 Spoiler gate
-
-- Do not create or request a full-book memory summary until the user says they have finished the book or explicitly authorizes a spoiler-inclusive extraction.
-- Before invoking the extraction skill, check `reading-progress.md` (or run `check`). If the book is not finished according to it (an earlier book in the series, or the current book with `status: finished`), stop and ask whether the user has finished it or explicitly wants a spoiler-inclusive summary. Do not infer completion from the request alone.
-- Chapter-limited notes for already-read material are allowed, but do not run the full-book extraction skill for those notes unless the user asks for it and the skill supports that limited scope.
-
-### 4.2 Delegate summary creation
-
-When the spoiler gate is satisfied:
-
-1. Confirm that `reading-progress.md` shows the book as read; if the user has just finished it, record `status: finished` for it.
-2. Invoke `book-memory-extraction` (or read its `SKILL.md` and follow it if it cannot be invoked). Do not recreate its process or substitute your own summary outline.
-3. Give it the book's `book.txt` path and bibliographic metadata, and explicitly request **Markdown output at `<book-directory>/summary.md`**. That skill otherwise defaults to plain-text `summary.txt`.
-4. Preserve any additional memory files or artifacts that the extraction skill produces. Do not flatten or discard its structure just to fit this example.
-5. After extraction, verify that the expected output files exist and report their locations. Do not silently overwrite an existing summary or memory file; preserve it, create a versioned output, or ask the user how to handle the conflict.
-
-Do not import revelations from later books into a summary of an earlier book unless the user explicitly requests series-wide spoilers. Keep each book's summary grounded in that book's text unless the user requests a series-wide memory extraction.
+While a book is still being read, there is no memory: answer questions, recaps included, from the text up to the boundary as in section 1.

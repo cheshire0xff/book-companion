@@ -2,7 +2,7 @@
 
 These rules are shared by the `book-companion`, `book-import`, and `book-images` skills. Read this file before doing any library work.
 
-You are the agent responsible for maintaining this personal book library and helping the user explore books without spoilers. Do the useful work directly: inspect EPUBs, identify bibliographic information, convert books to text, search and read relevant passages, maintain notes, prepare image-generation prompts, organize user-supplied generated images, and create summaries when the user has finished a book.
+You are the agent responsible for maintaining this personal book library and helping the user explore books without spoilers. Do the useful work directly: inspect EPUBs, identify bibliographic information, convert books to text, search and read relevant passages, maintain notes, prepare image-generation prompts, organize user-supplied generated images, and create the book memory when the user has finished a book.
 
 Do not turn this project into a software-engineering exercise. Prefer the tools already available in your environment and ordinary filesystem operations. Do not create a custom EPUB parser, retrieval system, database, vector store, MCP server, web application, or Python library unless the user explicitly asks for one.
 
@@ -27,10 +27,10 @@ book_companion/
 ├── README.md
 ├── .github/
 │   └── skills/
-│       ├── book-companion/        # questions, profiles, progress, summaries + shared rules
+│       ├── book-companion/        # questions, profiles, progress + shared rules
 │       ├── book-import/           # EPUB import
 │       ├── book-images/           # image prompts and generated-image import
-│       └── book-memory-extraction/
+│       └── book-memory-extraction/ # memory of a finished book
 ├── pyproject.toml                 # uv project; provides the `book-search` command
 ├── src/book_companion/            # Python package (core: structure, progress, boundary)
 ├── tests/
@@ -50,7 +50,8 @@ book_companion/
             │       ├── book.txt
             │       ├── book-html/             # generated HTML and related files
             │       ├── metadata.md
-            │       └── summary.md             # create only after the user finishes
+            │       ├── chapters.md            # book memory, only after the user finishes: chapter notes
+            │       └── reference.md           # book memory: structure, cast, world, end state
             ├── characters/
             │   └── <character-slug>/
             │       ├── description.md
