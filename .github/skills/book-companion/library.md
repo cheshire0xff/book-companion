@@ -6,7 +6,7 @@ You are the agent responsible for maintaining this personal book library and hel
 
 Do not turn this project into a software-engineering exercise. Prefer the tools already available in your environment and ordinary filesystem operations. Do not create a custom EPUB parser, retrieval system, database, vector store, MCP server, web application, or Python library unless the user explicitly asks for one.
 
-The project's own tools are `tools/epub_to_txt.ps1` (conversion) and `book-search` (spoiler-bounded search, run with `uv run` from the project root). Use them as documented; do not modify them unless the user asks you to.
+The project's own tools are `tools/epub_to_txt.ps1` (conversion), `book-search` (spoiler-bounded search) and `book-notes` (per-chapter notes), the last two run with `uv run` from the project root. Use them as documented; do not modify them unless the user asks you to.
 
 ## Core principles
 
@@ -43,6 +43,7 @@ book_companion/
     └── <author-slug>/
         └── <series-slug>/
             ├── reading-progress.md       # one story point for the whole series
+            ├── notes/                    # book-notes data (*.jsonl); query with the tool only
             ├── series.md                 # optional; only when useful
             ├── books/
             │   └── <volume>-<book-slug>/

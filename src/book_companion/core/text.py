@@ -29,6 +29,43 @@ def fold(text: str) -> tuple[str, list[int]]:
     return "".join(out), origin
 
 
+def normalized(text: str) -> tuple[str, list[int]]:
+    """Folded, casefolded text with whitespace runs collapsed to one space (and trimmed);
+    maps each character to its index in the original text."""
+    folded, origin = fold(text)
+    out: list[str] = []
+    where: list[int] = []
+    space: int | None = None  # index of a pending whitespace run
+    for ch, i in zip(folded, origin, strict=True):
+        if ch.isspace():
+            if out and space is None:
+                space = i
+            continue
+        if space is not None:
+            out.append(" ")
+            where.append(space)
+            space = None
+        for c in ch.casefold():
+            out.append(c)
+            where.append(i)
+    return "".join(out), where
+
+
+def normalize(text: str) -> str:
+    """Text for comparing quotes and names: no accents, case or whitespace differences."""
+    return normalized(text)[0]
+
+
+def locate(text: str, quote: str) -> Span | None:
+    """Where `quote` occurs in `text`, ignoring accents, case and whitespace, as a raw span."""
+    haystack, where = normalized(text)
+    needle = normalize(quote)
+    at = haystack.find(needle) if needle else -1
+    if at < 0:
+        return None
+    return where[at], where[at + len(needle) - 1] + 1
+
+
 def compile_query(query: str, regex: bool, word: bool, case_sensitive: bool) -> re.Pattern[str]:
     pattern = fold(query)[0] if regex else re.escape(fold(query)[0])
     if word:

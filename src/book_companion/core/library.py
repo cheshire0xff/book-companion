@@ -26,6 +26,13 @@ class Volume:
     def short_title(self) -> str:
         return self.book.title or self.path.name
 
+    @property
+    def series_number(self) -> int:
+        """The volume number of a book in a series (series code only; never None there)."""
+        if self.number is None:
+            raise RuntimeError(f"{self.path} is a standalone book, not a series volume")
+        return self.number
+
 
 @dataclass
 class Target:
@@ -37,7 +44,7 @@ class Target:
     progress_path: Path
     only: int | None = None  # set when the target is one book directory inside a series
 
-    def selected(self, items: list) -> list[tuple[Volume, object]]:
+    def selected[T](self, items: list[T]) -> list[tuple[Volume, T]]:
         """Pair each volume with its item, keeping only the volumes this target covers."""
         return [(v, item) for v, item in zip(self.volumes, items, strict=True)
                 if self.only is None or v.number == self.only]
@@ -63,6 +70,20 @@ class Target:
     def progress(self) -> Progress:
         return parse_progress(self.progress_path)
 
+    @property
+    def notes_dir(self) -> Path:
+        """Where extracted notes live: next to the series' (or standalone book's) progress."""
+        return self.progress_path.parent / "notes"
+
+    def volume_index(self, book: int | None) -> int:
+        """Reading-order index of a volume, from its number (None for a standalone book)."""
+        if not self.is_series:
+            return 0
+        for index, volume in enumerate(self.volumes):
+            if volume.number == book:
+                return index
+        raise BookError(f"No book {book} in this series.")
+
 
 def load_target(path: Path) -> Target:
     prefix = re.match(r"(\d+)-", path.name)
@@ -81,7 +102,7 @@ def load_target(path: Path) -> Target:
 
 def _load_series(series_dir: Path) -> list[Volume]:
     books_dir = series_dir / "books"
-    volumes: list[Volume] = []
+    numbered: list[tuple[int, Path]] = []
     for book_dir in sorted(d for d in books_dir.iterdir() if d.is_dir()):
         prefix = re.match(r"(\d+)-", book_dir.name)
         if not prefix:
@@ -89,14 +110,14 @@ def _load_series(series_dir: Path) -> list[Volume]:
                             "named <volume>-<slug>, e.g. 01-empire-of-silence.")
         if not (book_dir / "book-html").is_dir():
             raise BookError(f"{book_dir} has no book-html/; finish importing it first.")
-        volumes.append(Volume(book_dir, int(prefix.group(1)), load_book(book_dir)))
-    if not volumes:
+        numbered.append((int(prefix.group(1)), book_dir))
+    if not numbered:
         raise BookError(f"{books_dir} contains no books.")
-    numbers = [v.number for v in volumes]
+    numbers = [number for number, _ in numbered]
     if len(set(numbers)) != len(numbers):
         raise BookError(f"Two books in {books_dir} share a volume number.")
-    volumes.sort(key=lambda v: v.number)
-    return volumes
+    return [Volume(book_dir, number, load_book(book_dir))
+            for number, book_dir in sorted(numbered)]
 
 
 def location(target: Target, volume: Volume, section: Section | None) -> str:

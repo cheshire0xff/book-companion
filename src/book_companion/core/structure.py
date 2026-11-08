@@ -215,24 +215,26 @@ def load_book(book_dir: Path) -> Book:
     opf = _parse_xml(opf_path)
 
     manifest: dict[str, tuple[str, str, str]] = {}
-    for item in opf.iter(f"{OPF_NS}item"):
-        if item.get("id") and item.get("href"):
-            manifest[item.get("id")] = (
-                _join(opf_dir, item.get("href")),
-                item.get("media-type", ""),
-                item.get("properties", ""),
+    for element in opf.iter(f"{OPF_NS}item"):
+        item_id, href = element.get("id"), element.get("href")
+        if item_id and href:
+            manifest[item_id] = (
+                _join(opf_dir, href),
+                element.get("media-type", ""),
+                element.get("properties", ""),
             )
     spine_el = opf.find(f"{OPF_NS}spine")
     if spine_el is None:
         raise BookError(f"{opf_path} has no spine (reading order)")
-    spine = [manifest[ref.get("idref")][0]
+    spine = [manifest[idref][0]
              for ref in spine_el.iter(f"{OPF_NS}itemref")
-             if ref.get("idref") in manifest]
+             if (idref := ref.get("idref")) is not None and idref in manifest]
 
     hinted_toc_pages = {href for href, _, props in manifest.values() if "nav" in props.split()}
     for ref in opf.iter(f"{OPF_NS}reference"):
-        if ref.get("type", "").lower() == "toc" and ref.get("href"):
-            hinted_toc_pages.add(_join(opf_dir, ref.get("href").split("#")[0]))
+        guide_href = ref.get("href")
+        if ref.get("type", "").lower() == "toc" and guide_href:
+            hinted_toc_pages.add(_join(opf_dir, guide_href.split("#")[0]))
 
     ncx_href = manifest.get(spine_el.get("toc", ""), ("",))[0] or next(
         (href for href, media, _ in manifest.values()
@@ -300,13 +302,13 @@ def load_book(book_dir: Path) -> Book:
 
         if None in starts:
             begin(starts.pop(None))
-        for item in items:
-            if isinstance(item, _Anchor):
-                if item.id in starts:
-                    begin(starts.pop(item.id))
+        for piece in items:
+            if isinstance(piece, _Anchor):
+                if piece.id in starts:
+                    begin(starts.pop(piece.id))
             elif current is None:
-                front.append(item)
+                front.append(piece)
             else:
-                current.paragraphs.append(item)
+                current.paragraphs.append(piece)
 
     return Book(title, front, ordered, toc, toc_pages, unlisted, missing)

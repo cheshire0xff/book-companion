@@ -3,13 +3,20 @@ name = "book-companion"
 version = "0.1.0"
 description = "Spoiler-bounded tools for the Book Companion library"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic>=2.14.3",
+]
 
 [project.scripts]
 book-search = "book_companion.search.cli:main"
+book-notes = "book_companion.notes.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff>=0.8"]
+dev = [
+    "mypy>=2.4.1",
+    "pytest>=8",
+    "ruff>=0.8",
+]
 
 [build-system]
 requires = ["uv_build>=0.11.6,<0.12"]
@@ -17,6 +24,17 @@ build-backend = "uv_build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.mypy]
+strict = true
+files = ["src", "tests"]
+mypy_path = "tests"
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
 
 [tool.ruff]
 line-length = 100

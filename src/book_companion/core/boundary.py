@@ -65,15 +65,15 @@ def recorded_scopes(target: Target) -> list[Scope]:
         return [_scope_in_book(target.volumes[0].book, progress)]
     if progress.book is None:
         raise BookError(f"{path}: set 'book' to the volume number being read.")
-    highest = max(v.number for v in target.volumes)
+    highest = max(v.series_number for v in target.volumes)
     if progress.book > highest + 1:
         raise BookError(f"{path}: book {progress.book} is past the imported books "
                         f"(highest is {highest}); check the number.")
     scopes = []
     for volume in target.volumes:
-        if volume.number < progress.book:
+        if volume.series_number < progress.book:
             scopes.append(Scope(True, None, "earlier book: whole book"))
-        elif volume.number == progress.book:
+        elif volume.series_number == progress.book:
             scopes.append(_scope_in_book(volume.book, progress))
         else:
             scopes.append(Scope(False, 0, "later book: not read yet (excluded)"))
@@ -98,8 +98,7 @@ def resolve_scopes(target: Target, args: argparse.Namespace) -> list[Scope]:
             if volume is chosen:
                 requested.append(point_scope(volume.book, args.chapter, args.part,
                                              args.section, "requested"))
-            elif volume.number is not None and chosen.number is not None \
-                    and volume.number < chosen.number:
+            elif target.is_series and volume.series_number < chosen.series_number:
                 requested.append(scope)
             else:
                 requested.append(Scope(False, 0, "after the requested story point (excluded)"))
@@ -169,13 +168,14 @@ def allowed_text(target: Target, scopes: list[Scope], start: Start | None) -> li
             continue
         if not scope.included or (start is not None and index < start.volume_index):
             continue
-        here = start is not None and index == start.volume_index
-        if not here or start.section == 0:
-            blocks.append(Block(volume, None, volume.book.front, start.paragraph if here else 0))
+        here = start if start is not None and index == start.volume_index else None
+        if here is None or here.section == 0:
+            blocks.append(Block(volume, None, volume.book.front,
+                                here.paragraph if here is not None else 0))
         for section in volume.book.sections:
-            if not scope.allows(section) or (here and section.number < start.section):
+            if not scope.allows(section) or (here is not None and section.number < here.section):
                 continue
-            first = start.paragraph if here and section.number == start.section else 0
+            first = here.paragraph if here is not None and section.number == here.section else 0
             blocks.append(Block(volume, section, section.paragraphs, first))
     if start is not None and not blocks:
         raise BookError("The start point is after the end of the searchable range.")
