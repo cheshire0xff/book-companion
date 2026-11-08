@@ -1,7 +1,7 @@
 [project]
 name = "book-companion"
 version = "0.1.0"
-description = "Spoiler-bounded tools for the Book Companion library"
+description = "EPUB conversion and spoiler-bounded search for the Book Companion library"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.12"
@@ -11,6 +11,7 @@ dependencies = [
 
 [project.scripts]
 book-search = "book_companion.search.cli:main"
+book-convert = "book_companion.convert.cli:main"
 
 [dependency-groups]
 dev = [

@@ -1,12 +1,12 @@
 ---
 name: book-import
-description: "Use when importing an EPUB into the user's book library: identifying its title, author, series and volume, filing it in the library, converting it to TXT and HTML with the bundled epub_to_txt.ps1, and writing its metadata and reading-progress notes. Do not use for developing or modifying the Book Companion application or its scripts."
+description: "Use when importing an EPUB into the user's book library: identifying its title, author, series and volume, filing it in the library, converting it to TXT and HTML with book-convert, and writing its metadata and reading-progress notes. Do not use for developing or modifying the Book Companion application or its scripts."
 argument-hint: "[path to EPUB, default _incoming/epubs/]"
 ---
 
 # Book Import
 
-Paths that start with `../` or `scripts/` are relative to this skill's own folder (the one holding this `SKILL.md`). All other paths are relative to the library root, the folder you run commands from.
+Paths that start with `../` are relative to this skill's own folder (the one holding this `SKILL.md`). All other paths are relative to the library root, the folder you run commands from.
 
 Before starting, read `../book-companion/library.md` for the library layout, file-safety rules, and core principles. Use the reading-progress template in `../book-companion/spoiler-rules.md`.
 
@@ -38,19 +38,17 @@ The user may simply place an EPUB in `_incoming/epubs/` and ask you to import it
 
 ## 3. Convert EPUB to TXT and HTML
 
-Use the PowerShell script `scripts/epub_to_txt.ps1` in this skill's folder; call it by its full path, since commands run from the library root. Each conversion creates both `book.txt` and a sibling `book-html/` directory containing Calibre's XHTML documents and related package files. `book-search` reads the book from `book-html/`: its text, and its table of contents for the chapter boundaries. `book.txt` is a plain-text copy. Do not invoke Calibre directly and do not implement another converter unless the user explicitly asks you to.
+Use the `book-convert` command (installed with `book-search`). It runs Calibre's `ebook-convert` and creates both `book.txt` and a sibling `book-html/` directory containing Calibre's XHTML documents and related package files. `book-search` reads the book from `book-html/`: its text, and its table of contents for the chapter boundaries. `book.txt` is a plain-text copy. Do not invoke Calibre directly and do not implement another converter unless the user explicitly asks you to.
 
-The script accepts `-InputFile`, `-OutputFile`, and `-Force`. Use the PowerShell executable available in the environment (normally `pwsh`; on Windows, `powershell.exe` may also be available):
-
-```powershell
-pwsh -NoProfile -File "<this skill's folder>/scripts/epub_to_txt.ps1" -InputFile '<book-directory>/source.epub' -OutputFile '<book-directory>/book.txt'
+```shell
+book-convert '<book-directory>/source.epub' '<book-directory>/book.txt'
 ```
 
-1. Confirm that `scripts/epub_to_txt.ps1` exists. If the script or a usable PowerShell interpreter is missing, do not silently substitute another conversion method. Tell the user exactly what is missing and ask them to provide/install it or authorize an alternative.
-2. Use the documented parameter names exactly. Quote paths, especially paths containing spaces.
-3. Do not pass `-Force` during normal import; it replaces both the TXT file and its HTML directory. Neither output should exist yet; if either already exists, inspect it and resolve the conflict rather than overwriting it. Use `-Force` only when the user explicitly authorizes replacing those outputs.
-4. Do not modify the script itself unless the user asks you to.
-5. If the script fails, report the actual error and do not mark the import as complete. Do not silently fall back to Calibre or another tool.
+1. If `book-convert` is not found, or it reports that Calibre's `ebook-convert` is missing, do not silently substitute another conversion method. Tell the user exactly what is missing and ask them to install it or authorize an alternative.
+2. Quote paths, especially paths containing spaces.
+3. Do not pass `--force` during normal import; it replaces both the TXT file and its HTML directory. Neither output should exist yet; if either already exists, inspect it and resolve the conflict rather than overwriting it. Use `--force` only when the user explicitly authorizes replacing those outputs.
+4. Do not modify the tool itself unless the user asks you to.
+5. If the conversion fails, report the actual error and do not mark the import as complete. Do not silently fall back to Calibre or another tool.
 
 Conversion quality:
 

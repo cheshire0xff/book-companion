@@ -116,12 +116,17 @@ def print_scopes(target: Target, scopes: list[Scope], verb: str) -> None:
 Handler = Callable[[Target, argparse.Namespace], None]
 
 
-def run[C: StrEnum](parser: argparse.ArgumentParser, commands: Mapping[C, Handler],
-                    argv: list[str] | None) -> int:
-    """Parse arguments, load the target and run the chosen command."""
+def utf8_streams() -> None:
+    """Print UTF-8 whatever the console's code page, replacing what cannot be encoded."""
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")
+
+
+def run[C: StrEnum](parser: argparse.ArgumentParser, commands: Mapping[C, Handler],
+                    argv: list[str] | None) -> int:
+    """Parse arguments, load the target and run the chosen command."""
+    utf8_streams()
     args = parser.parse_args(argv)
     command_type = type(next(iter(commands)))
     try:

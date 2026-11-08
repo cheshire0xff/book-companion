@@ -17,8 +17,8 @@ You can also just ask in plain language; the agent picks the skill from its desc
 
 The tools and the library are separate. You install the plugin and the `book-search` command once, then work from your library folder.
 
-1. **Prerequisites:** [uv](https://docs.astral.sh/uv/), [Calibre](https://calibre-ebook.com/) (its `ebook-convert` does the conversion) and PowerShell (`pwsh`, or `powershell.exe` on Windows).
-2. **Install `book-search`**, the spoiler-bounded search the skills use for story questions:
+1. **Prerequisites:** [uv](https://docs.astral.sh/uv/) and [Calibre](https://calibre-ebook.com/) (its `ebook-convert` does the conversion). Both run on Windows, macOS and Linux; on Linux, make sure `ebook-convert` is on your PATH.
+2. **Install the commands** `book-search` (the spoiler-bounded search the skills use for story questions) and `book-convert` (EPUB conversion):
 
    ```shell
    uv tool install git+https://github.com/cheshire0xff/book-companion
@@ -39,7 +39,7 @@ The tools and the library are separate. You install the plugin and the `book-sea
 
 1. Copy the EPUB into `_incoming/epubs/`.
 2. Ask: **`/book-companion:book-import Import the EPUB in _incoming/epubs/.`**
-3. The agent identifies the title and author from the EPUB metadata/front matter, checks reliable bibliographic web sources for missing or ambiguous series/volume information, chooses a destination, moves the EPUB there as `source.epub`, converts it with the bundled `epub_to_txt.ps1`, checks `book.txt` and `book-html/`, and creates metadata and reading-progress files.
+3. The agent identifies the title and author from the EPUB metadata/front matter, checks reliable bibliographic web sources for missing or ambiguous series/volume information, chooses a destination, moves the EPUB there as `source.epub`, converts it with `book-convert`, checks `book.txt` and `book-html/`, and creates metadata and reading-progress files.
 4. Check the reported destination and any uncertain bibliographic details.
 
 You usually do not need to provide bibliographic details yourself. If the EPUB, front matter, and reliable web sources still do not establish the series or volume, the agent will ask you rather than guess.
@@ -115,13 +115,14 @@ book-companion/
 │   └── marketplace.json        # lets `/plugin marketplace add` install it from this repo
 ├── skills/
 │   ├── book-companion/         # SKILL.md + shared library.md and spoiler-rules.md
-│   ├── book-import/            # SKILL.md + scripts/epub_to_txt.ps1 (EPUB-to-TXT and HTML converter)
+│   ├── book-import/
 │   ├── book-images/
 │   └── book-memory-extraction/
-├── pyproject.toml, uv.lock     # uv project; provides the `book-search` command
+├── pyproject.toml, uv.lock     # uv project; provides the `book-search` and `book-convert` commands
 ├── src/book_companion/
 │   ├── core/                   # book structure, reading progress, spoiler boundary
-│   └── search/                 # the book-search command
+│   ├── search/                 # the book-search command
+│   └── convert/                # the book-convert command
 └── tests/
 ```
 

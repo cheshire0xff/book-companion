@@ -5,7 +5,7 @@ description: "Use for spoiler-safe questions about books in the user's library (
 
 # Book Companion
 
-Paths that start with `../` or `scripts/` are relative to this skill's own folder (the one holding this `SKILL.md`). All other paths are relative to the library root, the folder you run commands from.
+Paths that start with `../` are relative to this skill's own folder (the one holding this `SKILL.md`). All other paths are relative to the library root, the folder you run commands from.
 
 Before starting, read both shared rule files in this skill's folder:
 
