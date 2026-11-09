@@ -82,7 +82,7 @@ def test_series_places_name_their_volume(series: Builder) -> None:
     with pytest.raises(BookError, match='e.g. "volume 1 chapter 1"'):
         resolve(target, Place(chapter=1))
     assert resolve(target, Place(chapter=1), volume=1).start == Position(0, 2, 1)
-    with pytest.raises(BookError, match="No book 3"):
+    with pytest.raises(BookError, match="No volume 3"):
         resolve(target, Place(volume=3, chapter=1))
 
 

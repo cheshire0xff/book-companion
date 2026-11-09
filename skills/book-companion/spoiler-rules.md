@@ -74,31 +74,31 @@ The user may update progress informally, for example "I've finished chapter 18",
 
 ## Retrieval discipline
 
-Search and read story text with the bounded search tool, run from the library root (the folder that holds `books/`). Point it at the **series directory** (`books/<author>/<series>/`) so that facts from earlier books in the series are found too. Point it at one book directory inside the series to search only that book (the series' progress still applies), or at a standalone novel's book directory.
+Search and read story text with the bounded search tool, run from the library root (the folder that holds `books/`). Point it at the **series directory** (`books/<author>/<series>/`) so that facts from earlier volumes are found too. Point it at one volume directory inside the series to search only that volume (the series' progress still applies), or at a standalone novel's book directory.
+
+A **place** is written in words, in this order, and quoted: `"volume 1 chapter 46"`, `"volume 2 part 1 chapter 3"`, `"volume 2 section 4"` (a place without a chapter number), `"volume 1 chapter 9 paragraph 3"`, or `"volume 2"` (a whole volume). Every word has a short form: `"v2 pt1 ch3 p6"`. Write places exactly like this, lowercase and without commas. In a standalone book or a volume directory, leave out the volume.
 
 ```powershell
-book-search search   <series-dir> "<query>"                  # whole series, within progress
-book-search search   <series-dir> "<query>" --book 1 --chapter 46   # as of an earlier story point
-book-search read     <series-dir> --book 1 --chapter 46       # a whole chapter
-book-search chapters <series-dir>                             # sections within the boundary
+book-search search   <series-dir> "<query>"                                    # whole series, within progress
+book-search search   <series-dir> "<query>" --to "volume 1 chapter 46"         # as of an earlier story point
+book-search search   <series-dir> "<query>" --from "volume 2"                  # only volume 2, up to the progress
+book-search search   <series-dir> "<query>" --from "v1 ch66" --to "ch71"       # only chapters 66-71
+book-search read     <series-dir> "volume 1 chapter 46"                         # a whole chapter
+book-search read     <series-dir> --from "volume 1 chapter 40" --to "chapter 46"   # a run of chapters
+book-search read     <series-dir> --from "volume 1 section 5"                   # read on, up to the progress
+book-search chapters <series-dir>                                               # sections within the boundary
 ```
 
-The recorded story point decides what is searchable: earlier books in full, the current book up to its boundary, later books not at all. Results name the book, chapter and section. The tool also skips each book's contents page, so later chapter titles cannot surface. Useful search options: `--word`, `--regex`, `--context N` (whole paragraphs around each hit), `--count` (matches per section). `read` also takes `--section N` and `--from P --to Q` (paragraphs). Run `--help` for the rest.
+`--from` is where to begin and `--to` the last place to include, through its end; they mean the same in every command. `--to` defaults to the recorded reading progress: earlier volumes in full, the current volume up to its boundary, later volumes not at all. A `--to` without a volume is in the volume of `--from`. Every result heading ends with the place of its section, ready to copy. The tool also skips each book's contents page, so later chapter titles cannot surface. Useful search options: `--word`, `--regex`, `--context N` (whole paragraphs around each hit), `--count` (matches per section). Run `--help` for the rest.
 
-`--book/--chapter/--part/--section` on `search` and `chapters` **narrow** the boundary to an earlier story point: earlier books up to their progress, the given book up to that point, later books not at all. `--start-book/--start-chapter/--start-part/--start-section` make the search begin later. Together they give a range, for example only chapters 66–71:
-
-```powershell
-book-search search <series-dir> "Kalima" --word --start-book 1 --start-chapter 66 --book 1 --chapter 71
-```
-
-Narrowing and start points are always allowed; they never widen past recorded progress. Use them when an answer or image should reflect a particular stretch of the story.
+`--from`, and a `--to` up to the reading progress, are always allowed. Use them when an answer or image should reflect a particular stretch of the story.
 
 Search efficiently:
 
 1. Start with `--count` to see which chapters a name or term appears in, then search or `read` just those.
 2. Use `--word` for names and short terms, so they do not match inside other words. It also works with `--regex`, where it applies to the two ends of the whole pattern.
 3. For descriptive passages, search for a name near a keyword, with capture groups so only the keywords are highlighted: `"(Anaïs).{0,300}(hair|eyes|silk)" --regex`.
-4. Output stops after `--max-chars` (default 12000). The tool then lists the remaining matches by section and prints the `--start-book/--start-section/--start-paragraph` flags that continue from the next hit. Rerun with those flags to read the next page, or narrow the search instead if the remaining sections are not relevant.
+4. Output stops after `--max-chars` (default 12000 for `search`, 24000 for `read`). The tool then prints the command for the next page; a search also lists the remaining matches by section. Run it as printed, or narrow the search instead if the remaining sections are not relevant.
 
 Before answering a question about the story, a character, a location, a faction, an object, or an image:
 
@@ -106,7 +106,7 @@ Before answering a question about the story, a character, a location, a faction,
 2. Use the tool for every story search and read. Do not grep or open `book.txt` or the `book-html/` chapter files directly for story questions; they contain the whole book.
 3. Read enough around a hit (`--context` or `read`) to understand it; do not rely on an isolated keyword match.
 4. If the tool reports a boundary error (invalid progress file, nothing completed, ambiguous chapter number), resolve it with the user. Do not work around it by reading the files directly.
-5. Going past recorded progress (`--all`, or a later story point) requires `--allow-spoilers`. Add it only when the user explicitly authorized that for this request. Never use it to check whether a guess is correct.
+5. Going past recorded progress (`--all`, or a `--to` or place to read past it) requires `--allow-spoilers`. Add it only when the user explicitly authorized that for this request. Never use it to check whether a guess is correct.
 6. Do not use external sources for fictional-world information. They commonly contain spoilers and may mix canon with fan interpretation.
 7. If the tool cannot determine chapter boundaries for a book, stop and explain the limitation. Do not fall back to an unrestricted search of the full text.
 8. If the relevant information has not appeared by the checkpoint, say that it has not been established in the material the user has read. Do not hint that something is revealed later.

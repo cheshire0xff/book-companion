@@ -102,11 +102,12 @@ def find_chapter(book: Book, chapter: int, part: int | None) -> Section:
         if part is None and len(parts) == len(hits):
             raise BookError(
                 f"Chapter {chapter} appears in parts {', '.join(map(str, parts))}; the numbering "
-                "restarts in each part. Give the part (--part, or 'part:' in reading-progress.md).")
+                "restarts in each part. Give the part, e.g. \"part 2 chapter 5\" (or 'part:' in "
+                "reading-progress.md).")
         raise BookError(
             f"{describe_chapter(chapter, part).capitalize()} is ambiguous: sections "
             f"{', '.join(str(s.number) for s in hits)} all carry that number. Use a section "
-            "number instead (--section, or 'section:' in reading-progress.md).")
+            "number instead, e.g. \"section 12\" (or 'section:' in reading-progress.md).")
     return hits[0]
 
 

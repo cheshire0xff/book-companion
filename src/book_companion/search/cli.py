@@ -3,32 +3,30 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 
-from book_companion.core.boundary import (
-    Block,
-    Scope,
-    allowed_text,
-    recorded_scopes,
-    resolve_scopes,
-    resolve_start,
-)
+from book_companion.core.boundary import Block, blocks, coverage, recorded_end, select, whole
 from book_companion.core.cli import (
     CONCEPTS,
     FORMATTER,
-    add_point,
+    add_range,
     add_spoilers,
-    add_start,
     add_target,
+    command_line,
     positive_int,
-    print_scopes,
+    print_selection,
     run,
 )
 from book_companion.core.errors import BookError
-from book_companion.core.library import Target, Volume, location
-from book_companion.core.structure import Book, Section, describe_chapter, find_chapter
+from book_companion.core.library import Target, Volume
+from book_companion.core.places import Position, location, parse_place, section_place
+from book_companion.core.structure import describe_chapter
 from book_companion.core.text import Match, compile_query, find_matches, highlight, snippet
+
+SEARCH_MAX_CHARS = 12000
+READ_MAX_CHARS = 24000
+RANGE = "range (optional; default: from the start up to the reading progress)"
 
 
 @dataclass
@@ -39,21 +37,35 @@ class Hit:
 
 
 def _counts_by_section(target: Target, hits: list[Hit]) -> list[str]:
-    blocks: dict[int, Block] = {}
+    blocks_seen: dict[int, Block] = {}
     counts: dict[int, int] = {}
     for hit in hits:
-        blocks.setdefault(id(hit.block), hit.block)
+        blocks_seen.setdefault(id(hit.block), hit.block)
         counts[id(hit.block)] = counts.get(id(hit.block), 0) + len(hit.matches)
     return [f"  {counts[key]:4}  {location(target, block.volume, block.section)}"
-            for key, block in blocks.items()]
+            for key, block in blocks_seen.items()]
 
 
-def _continue_flags(target: Target, hit: Hit) -> str:
-    flags = [f"--start-book {hit.block.volume.number}"] if target.is_series else []
-    if hit.block.section is not None:
-        flags.append(f"--start-section {hit.block.section.number}")
-    flags.append(f"--start-paragraph {hit.index + 1}")
-    return " ".join(flags)
+def _from_flags(target: Target, block: Block, index: int) -> list[str]:
+    """--from at paragraph `index` (0-based) of a block; nothing at the very start."""
+    place = section_place(target, block.volume, block.section, index + 1 if index else None)
+    return ["--from", str(place)] if str(place) else []
+
+
+def _search_options(args: argparse.Namespace) -> list[str]:
+    """The options of a search other than --from, as typed on the command line."""
+    options: list[str] = []
+    max_chars = None if args.max_chars == SEARCH_MAX_CHARS else args.max_chars
+    for flag, value in (("--to", args.to_place), ("--context", args.context or None),
+                        ("--max-chars", max_chars)):
+        if value is not None:
+            options += [flag, str(value)]
+    for flag, on in (("--all", args.all), ("--allow-spoilers", args.allow_spoilers),
+                     ("--regex", args.regex), ("--word", args.word),
+                     ("--case-sensitive", args.case_sensitive), ("--full", args.full)):
+        if on:
+            options.append(flag)
+    return options
 
 
 def _print_hits(target: Target, hits: list[Hit], args: argparse.Namespace) -> int:
@@ -73,7 +85,7 @@ def _print_hits(target: Target, hits: list[Hit], args: argparse.Namespace) -> in
         new_last = last if same_block else None
         if args.context or args.full:
             first = max(0, hit.index - args.context)
-            stop = min(len(block.paragraphs), hit.index + args.context + 1)
+            stop = min(block.stop, hit.index + args.context + 1)
             for j in range(first, stop):
                 if j in new_printed:
                     continue
@@ -101,20 +113,16 @@ def _print_hits(target: Target, hits: list[Hit], args: argparse.Namespace) -> in
 
 
 def cmd_search(target: Target, args: argparse.Namespace) -> None:
-    scopes = resolve_scopes(target, args)
-    start = resolve_start(target, args)
+    selection = select(target, args)
     pattern = compile_query(args.query, args.regex, args.word, args.case_sensitive)
-    print_scopes(target, scopes, "Searching")
-    blocks = allowed_text(target, scopes, start)
-    if start is not None:
-        print(f"  starting at: {start.describe(target)}")
+    print_selection(target, selection, "Searching")
 
     hits = [Hit(block, i, matches)
-            for block in blocks
-            for i in range(block.first, len(block.paragraphs))
+            for block in blocks(target, selection)
+            for i in range(block.first, block.stop)
             if (matches := find_matches(block.paragraphs[i], pattern))]
     if not hits:
-        print(f"\nNo matches for {args.query!r} within the boundary.")
+        print(f"\nNo matches for {args.query!r} within the range.")
         return
     sections = len({id(hit.block) for hit in hits})
     print(f"\n{args.query!r}: {sum(len(h.matches) for h in hits)} matches in {len(hits)} "
@@ -134,126 +142,81 @@ def cmd_search(target: Target, args: argparse.Namespace) -> None:
         print("\n".join(remaining[:25]))
         if len(remaining) > 25:
             print(f"  … and {len(remaining) - 25} more sections")
-        print(f"Continue: rerun with  {_continue_flags(target, rest[0])}  "
-              "(replacing any --start-* flags).")
-        print("Or narrow it: a tighter query, --word, or a --start-*/--chapter range.")
+        command = command_line("search", args.target, args.query,
+                               *_from_flags(target, rest[0].block, rest[0].index),
+                               *_search_options(args))
+        print(f"Next page:  {command}")
+        print("Or narrow it: a tighter query, --word, or a --from/--to range.")
 
 
-def _through(book: Book, args: argparse.Namespace) -> Section | None:
-    """The later point a read goes on through, if --through-* was given."""
-    if args.through_part is not None and args.through_chapter is None:
-        raise BookError("--through-part is only used together with --through-chapter.")
-    if args.through_chapter is not None:
-        return find_chapter(book, args.through_chapter, args.through_part)
-    if args.through_section is not None:
-        return book.section(args.through_section)
-    return None
+def _read_options(args: argparse.Namespace) -> list[str]:
+    """The options of a read other than --from, as typed on the command line."""
+    options: list[str] = []
+    if args.to_place is not None:
+        options += ["--to", args.to_place]
+    elif args.place is not None and str(end := replace(parse_place(args.place),
+                                                       paragraph=None)):
+        options += ["--to", str(end)]
+    if args.allow_spoilers:
+        options.append("--allow-spoilers")
+    if args.max_chars != READ_MAX_CHARS:
+        options += ["--max-chars", str(args.max_chars)]
+    return options
 
 
 def cmd_read(target: Target, args: argparse.Namespace) -> None:
-    volume = target.volume(args.book)
-    book = volume.book
-    if args.part is not None and args.chapter is None:
-        raise BookError("--part is only used together with --chapter.")
-    if args.chapter is not None:
-        section = find_chapter(book, args.chapter, args.part)
-    elif args.section is not None:
-        section = book.section(args.section)
-    else:
-        raise BookError("Say what to read: --chapter N (with --part if needed) or --section N.")
-    through = _through(book, args)
-    if through is not None and through.number < section.number:
-        raise BookError("--through-chapter/--through-section must not come before what is "
-                        "being read.")
-
-    scope = recorded_scopes(target)[target.volumes.index(volume)]
-    if args.allow_spoilers:
-        scope = Scope(True, None, "--allow-spoilers: whole book")
-    elif not scope.allows(section):
-        raise BookError("That is beyond the reading progress. Add --allow-spoilers only "
-                        "if the user explicitly allowed it for this request.")
-
-    ranged = args.start is not None or args.end is not None
-    resuming = args.start_section is not None or args.start_paragraph is not None
-    if ranged and resuming:
-        raise BookError("Use --from/--to or --start-section/--start-paragraph, not both.")
-    if ranged and through is not None:
-        raise BookError("--from/--to read part of one section; leave out "
-                        "--through-chapter/--through-section.")
-    last = section.number if ranged else max(book.subtree_end(section),
-                                             book.subtree_end(through or section))
-    first_section = args.start_section or section.number
-    if not section.number <= first_section <= last:
-        raise BookError(f"--start-section must be within sections {section.number}-{last} "
-                        "of what is being read.")
-
-    flags = [f"--book {volume.number}"] if target.is_series and target.only is None else []
-    flags.append(f"--section {section.number}")
-    if through is not None:
-        flags.append(f"--through-section {through.number}")
-    if args.allow_spoilers:
-        flags.append("--allow-spoilers")
+    if args.place is None and args.from_place is None and args.to_place is None:
+        raise BookError('Say what to read: a place such as "volume 1 chapter 3", or '
+                        "--from PLACE, with --to PLACE to stop before the reading progress.")
+    selection = select(target, args, args.place)
     used = 0
     printed = False
-    for current in book.sections[first_section - 1:last]:
-        if not scope.allows(current):
-            print("[The rest is beyond the reading progress.]")
-            break
-        heading = f"## {location(target, volume, current)}\n"
+    for block in blocks(target, selection):
+        if block.section is None and block.first >= block.stop:
+            continue  # no front matter here
+        heading = f"## {location(target, block.volume, block.section)}\n"
         print(heading)
         used += len(heading) + 1
-        if ranged:
-            first, final = args.start or 1, args.end or len(current.paragraphs)
-        else:
-            first = (args.start_paragraph or 1) if current.number == first_section else 1
-            final = len(current.paragraphs)
-        for i in range(max(1, first), min(len(current.paragraphs), final) + 1):
-            text = f"¶{i}  {current.paragraphs[i - 1]}\n"
+        for i in range(block.first, block.stop):
+            text = f"¶{i + 1}  {block.paragraphs[i]}\n"
             if printed and used + len(text) > args.max_chars:
-                more = ([f"--from {i}"] + ([f"--to {args.end}"] if args.end else []) if ranged
-                        else [f"--start-section {current.number}", f"--start-paragraph {i}"])
-                print(f"--- Output limit reached (--max-chars {args.max_chars}). Continue: "
-                      f"rerun read with  {' '.join(flags + more)}")
+                command = command_line("read", args.target, *_from_flags(target, block, i),
+                                       *_read_options(args))
+                print(f"--- Output limit reached (--max-chars {args.max_chars}).")
+                print(f"Next page:  {command}")
                 return
             print(text)
             used += len(text) + 1
             printed = True
+    if selection.to_progress and selection.end < whole(target)[1]:
+        print("[The reading progress ends here.]")
 
 
 def cmd_chapters(target: Target, args: argparse.Namespace) -> None:
-    scopes = resolve_scopes(target, args)
-    start = resolve_start(target, args)
-    print_scopes(target, scopes, "Table of contents of")
-    allowed_text(target, scopes, start)  # validates the start point
-    for index, (volume, scope) in enumerate(zip(target.volumes, scopes, strict=True)):
-        if target.only is not None and volume.number != target.only:
-            continue
-        if not scope.included or (start is not None and index < start.volume_index):
-            continue
-        first = start.section if start is not None and index == start.volume_index else 0
+    selection = select(target, args)
+    print_selection(target, selection, "Table of contents of")
+    start, end = selection.start, selection.end
+    for index in range(start.volume, end.volume + 1):
+        volume = target.volumes[index]
         book = volume.book
+        first = start.section if index == start.volume else 0
+        last = end.section if index == end.volume else len(book.sections)
         print(f"\n## {volume.name}")
         part_column = f"{'part':>4}  " if book.has_parts else ""
         print(f"{'section':>7}  {part_column}{'ch':>4}  {'¶':>4}  label")
-        hidden = 0
-        for section in book.sections:
-            if section.number < first:
-                continue
-            if not scope.allows(section):
-                hidden += 1
-                continue
+        for section in book.sections[max(first, 1) - 1:last]:
             chapter = str(section.chapter) if section.chapter is not None else "-"
             part = (f"{section.part if section.part is not None else '-':>4}  "
                     if book.has_parts else "")
             indent = "  " * (section.depth - 1)
             print(f"{section.number:>7}  {part}{chapter:>4}  {len(section.paragraphs):>4}  "
                   f"{indent}{section.heading}")
-        if hidden:
+        if hidden := len(book.sections) - last:
             print(f"({hidden} later sections hidden)")
 
 
-def _structure_report(volume: Volume, scope: Scope | None) -> list[str]:
-    """Structure and progress of one book, without any titles or text."""
+def _structure_report(volume: Volume, progress: str | None) -> list[str]:
+    """Structure and progress of one volume, without any titles or text."""
     book = volume.book
     keys = [(s.part, s.chapter) for s in book.sections if s.chapter is not None]
     numbers = [chapter for _, chapter in keys]
@@ -271,8 +234,7 @@ def _structure_report(volume: Volume, scope: Scope | None) -> list[str]:
     empty = sum(1 for s in book.sections if not s.paragraphs)
 
     warnings = []
-    progress = scope.description if scope is not None else "ERROR (see above)"
-    if scope is None:
+    if progress is None:
         warnings.append("reading-progress.md is invalid")
     if not numbers:
         warnings.append("no table-of-contents labels carry chapter numbers; "
@@ -292,7 +254,7 @@ def _structure_report(volume: Volume, scope: Scope | None) -> list[str]:
         f"  Numbered chapters:            {len(numbers)}"
         + (f" ({min(numbers)}-{max(numbers)})" if numbers else ""),
         f"  Parts:                        {len(parts) or 'none'}"
-        + ("; chapter numbering restarts in each part (progress needs 'part:')"
+        + ("; chapter numbering restarts in each part (places and progress need the part)"
            if restarts else ""),
         f"  Duplicate chapter numbers:    {', '.join(duplicates) or 'none'}",
         f"  Gaps in chapter numbers:      {', '.join(gaps) or 'none'}",
@@ -303,7 +265,7 @@ def _structure_report(volume: Volume, scope: Scope | None) -> list[str]:
         "(attached to the preceding section)",
         f"  Missing spine files:          {book.missing_files}",
         f"  Front-matter paragraphs:      {len(book.front)}",
-        f"  Reading progress:             {progress}",
+        f"  Reading progress:             {progress or 'ERROR (see above)'}",
         "  Result: " + ("OK" if not warnings else "WARN\n    - " + "\n    - ".join(warnings)),
     ]
     return lines
@@ -311,19 +273,23 @@ def _structure_report(volume: Volume, scope: Scope | None) -> list[str]:
 
 def cmd_check(target: Target, _args: argparse.Namespace) -> None:
     print("Structure check (no titles or text shown)")
-    scopes: list[Scope | None]
+    descriptions: list[str | None]
     try:
-        scopes = list(recorded_scopes(target))
+        end = recorded_end(target)
         progress = target.progress()
-        where = f"book {progress.book}, " if progress.book is not None else ""
+        where = f"volume {progress.book}, " if progress.book is not None else ""
         print(f"Reading progress ({target.progress_path}): {where}{progress.status}")
+        start = Position(0, 0, 1)
+        descriptions = [coverage(target, index, start, end, outside="not read yet")
+                        if end is not None else "nothing completed yet"
+                        for index in range(len(target.volumes))]
     except BookError as exc:
-        scopes = [None] * len(target.volumes)
+        descriptions = [None] * len(target.volumes)
         print(f"Reading progress: ERROR\n  - {exc}")
-    for volume, scope in target.selected(scopes):
-        label = f"Book {volume.number}" if volume.number is not None else volume.path.name
+    for volume, description in target.selected(descriptions):
+        label = f"Volume {volume.number}" if volume.number is not None else volume.path.name
         print(f"\n## {label}")
-        print("\n".join(_structure_report(volume, scope)))
+        print("\n".join(_structure_report(volume, description)))
 
 
 class Command(StrEnum):
@@ -346,16 +312,17 @@ def build_parser() -> argparse.ArgumentParser:
     chapters = sub.add_parser(Command.CHAPTERS, help="list sections within the boundary",
                               epilog=CONCEPTS, formatter_class=FORMATTER)
     add_target(chapters)
-    add_point(chapters, "story point (narrows the boundary; default: reading progress)")
-    add_start(chapters, with_paragraph=False)
+    add_range(chapters, RANGE, begin='begin the listing here, e.g. --from "volume 2"',
+              end='end the listing with this place, e.g. --to "volume 1 chapter 12"')
     add_spoilers(chapters, with_all=True)
 
     search = sub.add_parser(Command.SEARCH, help="search text within the boundary",
                             epilog=CONCEPTS, formatter_class=FORMATTER)
     add_target(search)
     search.add_argument("query")
-    add_point(search, "story point (narrows the boundary; default: reading progress)")
-    add_start(search, with_paragraph=True)
+    add_range(search, RANGE, begin='begin the search here, e.g. --from "volume 1 chapter 66"',
+              end='end the search with this place, e.g. --to "volume 1 chapter 71"; '
+                  "earlier than the reading progress, it searches as of that story point")
     add_spoilers(search, with_all=True)
     output = search.add_argument_group("matching and output")
     output.add_argument("--regex", action="store_true",
@@ -369,40 +336,32 @@ def build_parser() -> argparse.ArgumentParser:
                         help="show N whole paragraphs around each hit")
     output.add_argument("--full", action="store_true", help="show whole matching paragraphs")
     output.add_argument("--count", action="store_true", help="only count matches per section")
-    output.add_argument("--max-chars", type=positive_int, default=12000, metavar="N",
-                        help="stop printing results after about N characters (default "
-                             "12000) and print the --start-* flags that continue; lower it "
-                             "if your output gets cut off")
+    output.add_argument("--max-chars", type=positive_int, default=SEARCH_MAX_CHARS, metavar="N",
+                        help=f"stop printing results after about N characters (default "
+                             f"{SEARCH_MAX_CHARS}) and print the command that shows the next "
+                             "page; lower it if your output gets cut off")
 
     read = sub.add_parser(Command.READ,
                           help="print a chapter, a section, or a run of them, within the boundary",
                           epilog=CONCEPTS, formatter_class=FORMATTER)
     add_target(read)
-    add_point(read, "what to read")
-    on = read.add_argument_group(
-        "reading on (optional): go on through a later point, e.g. a whole book in order")
-    ends = on.add_mutually_exclusive_group()
-    ends.add_argument("--through-chapter", type=positive_int, metavar="N",
-                      help="go on through this chapter, e.g. --chapter 1 --through-chapter 10")
-    ends.add_argument("--through-section", type=positive_int, metavar="N",
-                      help="go on through this section")
-    on.add_argument("--through-part", type=positive_int, metavar="P",
-                    help="with --through-chapter, when numbering restarts in each part")
+    read.add_argument("place", nargs="?",
+                      help='one chapter or section to read, e.g. "volume 1 chapter 46", with the '
+                           "sections nested in it; from a paragraph, e.g. "
+                           '"volume 1 chapter 46 paragraph 12", it reads on to the end of that '
+                           "chapter")
+    add_range(read, "range (instead of a place)",
+              begin='begin reading here, e.g. --from "volume 1 chapter 40" or '
+                    '--from "volume 1 chapter 46 paragraph 12"',
+              end='the last place to read, e.g. --to "chapter 46" or --to "chapter 46 '
+                  'paragraph 30"; without --to, reading goes on up to the reading progress, '
+                  "a page at a time")
     add_spoilers(read, with_all=False)
-    paragraphs = read.add_argument_group("paragraph range")
-    paragraphs.add_argument("--from", dest="start", type=positive_int, metavar="P",
-                            help="first paragraph (reads only that section, not nested ones)")
-    paragraphs.add_argument("--to", dest="end", type=positive_int, metavar="Q",
-                            help="last paragraph (reads only that section, not nested ones)")
-    paging = read.add_argument_group(
-        "paging (the tool prints these flags when output is cut off)")
-    paging.add_argument("--max-chars", type=positive_int, default=24000, metavar="N",
-                        help="stop after about N characters (default 24000) and print "
-                             "the flags that continue; lower it if your output gets cut off")
-    paging.add_argument("--start-section", type=positive_int, metavar="N",
-                        help="continue at this section of what is being read")
-    paging.add_argument("--start-paragraph", type=positive_int, metavar="P",
-                        help="continue at this paragraph of the start section")
+    paging = read.add_argument_group("paging")
+    paging.add_argument("--max-chars", type=positive_int, default=READ_MAX_CHARS, metavar="N",
+                        help=f"stop after about N characters (default {READ_MAX_CHARS}) and "
+                             "print the command that shows the next page; lower it if your "
+                             "output gets cut off")
     return parser
 
 

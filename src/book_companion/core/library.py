@@ -9,7 +9,7 @@ from pathlib import Path
 
 from book_companion.core.errors import BookError
 from book_companion.core.progress import Progress, parse_progress
-from book_companion.core.structure import Book, Section, load_book
+from book_companion.core.structure import Book, load_book
 
 
 @dataclass
@@ -21,7 +21,7 @@ class Volume:
     @property
     def name(self) -> str:
         title = self.book.title or self.path.name
-        return f"Book {self.number}: {title}" if self.number is not None else title
+        return f"Volume {self.number}: {title}" if self.number is not None else title
 
     @property
     def short_title(self) -> str:
@@ -53,32 +53,24 @@ class Target:
     def volume(self, number: int | None) -> Volume:
         if not self.is_series:
             if number is not None:
-                raise BookError("--book is only for series directories.")
+                raise BookError("This is a standalone book, so places leave out the volume.")
             return self.volumes[0]
         if number is None:
             if self.only is None:
-                raise BookError("This is a series directory; say which book with --book N.")
+                raise BookError("This is a series directory; say which volume, e.g. "
+                                '"volume 1 chapter 3".')
             number = self.only
         elif self.only is not None and number != self.only:
-            raise BookError(f"This target is book {self.only} only; point at the series "
-                            "directory to use other books.")
+            raise BookError(f"This target is volume {self.only} only; point at the series "
+                            "directory to use other volumes.")
         for volume in self.volumes:
             if volume.number == number:
                 return volume
         available = ", ".join(str(v.number) for v in self.volumes)
-        raise BookError(f"No book {number} in this series (books: {available}).")
+        raise BookError(f"No volume {number} in this series (volumes: {available}).")
 
     def progress(self) -> Progress:
         return parse_progress(self.progress_path)
-
-    def volume_index(self, book: int | None) -> int:
-        """Reading-order index of a volume, from its number (None for a standalone book)."""
-        if not self.is_series:
-            return 0
-        for index, volume in enumerate(self.volumes):
-            if volume.number == book:
-                return index
-        raise BookError(f"No book {book} in this series.")
 
 
 def load_target(path: Path) -> Target:
@@ -118,12 +110,3 @@ def _load_series(series_dir: Path) -> list[Volume]:
     return [Volume(book_dir, number, load_book(book_dir))
             for number, book_dir in sorted(numbered)]
 
-
-def location(target: Target, volume: Volume, section: Section | None) -> str:
-    """Heading for a block of text, naming the book in a series."""
-    prefix = f"{volume.short_title} · " if target.is_series else ""
-    if section is None:
-        return f"{prefix}Front matter"
-    where = (f"book {volume.number}, section {section.number}" if target.is_series
-             else f"section {section.number}")
-    return f"{prefix}{section.heading}  ({where})"

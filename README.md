@@ -71,14 +71,14 @@ The agent searches with `book-search`. Pointed at a series directory, it searche
 
 ```powershell
 book-search search   books/christopher-ruocchio/sun-eater "Valka" --word --count
-book-search search   books/christopher-ruocchio/sun-eater "Valka" --book 1 --chapter 46
-book-search read     books/christopher-ruocchio/sun-eater --book 1 --chapter 46
-book-search read     books/christopher-ruocchio/sun-eater --book 1 --chapter 40 --through-chapter 46
+book-search search   books/christopher-ruocchio/sun-eater "Valka" --to "volume 1 chapter 46"
+book-search read     books/christopher-ruocchio/sun-eater "volume 1 chapter 46"
+book-search read     books/christopher-ruocchio/sun-eater --from "v1 ch40" --to "ch46"
 book-search chapters books/christopher-ruocchio/sun-eater
 book-search check    books/christopher-ruocchio/sun-eater   # structure report, no titles
 ```
 
-`--book/--chapter` narrows the search to an earlier story point. Anything past your progress is refused unless `--allow-spoilers` is added, which the agent does only when you've explicitly allowed it. `--help` explains chapters, parts and sections.
+A place is written in words, `"volume 1 chapter 46"`, or short, `"v1 ch46"`. `--to` narrows the search to an earlier story point and `--from` makes it begin later. Anything past your progress is refused unless `--allow-spoilers` is added, which the agent does only when you've explicitly allowed it. `--help` explains places, chapters, parts and sections.
 
 ## Generate an image with ChatGPT
 

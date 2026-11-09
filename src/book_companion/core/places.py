@@ -104,8 +104,8 @@ def resolve(target: Target, place: Place, volume: int | None = None) -> Span:
         if place.paragraph > len(paragraphs):
             where = section_place(target, chosen, section) if section is not None else None
             name = f'"{where}"' if where is not None else "The front matter"
-            raise BookError(f"{name} has {len(paragraphs)} paragraphs; there is no "
-                            f"paragraph {place.paragraph}.")
+            count = f"{len(paragraphs)} paragraph{'s' if len(paragraphs) != 1 else ''}"
+            raise BookError(f"{name} has {count}; there is no paragraph {place.paragraph}.")
         point = Position(index, section.number if section is not None else 0, place.paragraph)
         return Span(point, point)
     if section is None:
