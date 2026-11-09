@@ -29,6 +29,7 @@ _MARKDOWN = MarkdownIt("commonmark", {"html": False}).enable("table")
 
 NOTE_LABELS = {
     "metadata.md": "Metadata",
+    "review.md": "Review",
     "reference.md": "Reference",
     "chapters.md": "Chapter notes",
     "chapters-condensed.md": "Condensed notes",

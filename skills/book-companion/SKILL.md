@@ -1,6 +1,6 @@
 ---
 name: book-companion
-description: "Use for spoiler-safe questions about books in the user's library (characters, locations, factions, objects, events, setting), maintaining entity profiles, and updating reading progress. For importing an EPUB use book-import; for image prompts or importing generated images use book-images; for the memory or recap of a finished book use book-memory-extraction. Do not use for developing or modifying the Book Companion application or its scripts."
+description: "Use for spoiler-safe questions about books in the user's library (characters, locations, factions, objects, events, setting), maintaining entity profiles, and updating reading progress. For importing an EPUB use book-import; for image prompts or importing generated images use book-images; for the memory or recap of a finished book use book-memory-extraction; for the user's own review of a book they've finished use book-review. Do not use for developing or modifying the Book Companion application or its scripts."
 ---
 
 # Book Companion
@@ -17,6 +17,7 @@ Related skills:
 - **`book-import`**: importing an EPUB. If that skill is not loaded, read `../book-import/SKILL.md` and follow it.
 - **`book-images`**: preparing image prompts and importing generated images. If that skill is not loaded, read `../book-images/SKILL.md` and follow it.
 - **`book-memory-extraction`**: the book memory of a finished book (see section 4).
+- **`book-review`**: interviewing the user about a book they've finished and writing their review. If that skill is not loaded, read `../book-review/SKILL.md` and follow it.
 
 ## 1. Answering questions about the book
 

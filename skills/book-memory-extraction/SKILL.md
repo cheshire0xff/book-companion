@@ -1,6 +1,6 @@
 ---
 name: book-memory-extraction
-description: "Use when the user has finished a book in their library and wants its book memory, a recap of a finished book, to condense an existing book memory, or to log a book memory's model and cost or the user's own review of it. Produces compact, spoiler-complete notes (chapters.md and reference.md in the book's folder, and chapters-condensed.md on request) for accurately recalling the story later, especially when continuing a series. Not for books still being read. Do not use for developing or modifying the Book Companion application or its scripts."
+description: "Use when the user has finished a book in their library and wants its book memory, a recap of a finished book, to condense an existing book memory, or to log a book memory's model and cost or the user's own check of it. Produces compact, spoiler-complete notes (chapters.md and reference.md in the book's folder, and chapters-condensed.md on request) for accurately recalling the story later, especially when continuing a series. Not for books still being read. Do not use for developing or modifying the Book Companion application or its scripts."
 argument-hint: "[book directory]"
 user-invocable: true
 ---

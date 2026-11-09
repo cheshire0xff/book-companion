@@ -140,6 +140,20 @@ def test_notes_past_progress_are_behind_a_warning(library: Path) -> None:
     assert '<details class="spoiler">' not in finished and "Lone Star — Chapter Notes" in finished
 
 
+def test_review_is_listed_and_hidden_like_the_memory(library: Path) -> None:
+    series = library / "books" / "jane-doe" / "night-saga"
+    write(series / "volumes" / "02-second-night" / "review.md", "# Review: Second Night\n")
+    write(library / "books" / "jane-doe" / "standalone" / "lone-star" / "review.md",
+          "# Review: Lone Star\n\n- Rating: 4.5/5 ★★★★½\n")
+    html = page(library, SERIES)
+    review = f'href="{SERIES}volumes/02-second-night/review.md"'
+    assert f'{review} title="Past your reading progress">⚠ Review</a>' in html
+    unread = page(library, SERIES + "volumes/02-second-night/review.md")
+    assert '<details class="spoiler">' in unread and "Volume 2 is past" in unread
+    finished = page(library, "/books/jane-doe/standalone/lone-star/review.md")
+    assert '<details class="spoiler">' not in finished and "★★★★½" in finished
+
+
 def test_broken_progress_shows_an_error_and_hides_every_memory_note(library: Path) -> None:
     write(library / "books" / "jane-doe" / "night-saga" / "reading-progress.md",
           "---\nvolume: one\nstatus: reading\n---\n")

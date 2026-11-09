@@ -16,7 +16,7 @@ from book_companion.core.progress import Progress, Status, parse_progress
 
 PROGRESS_FILE = "reading-progress.md"
 SERIES_NOTE = "series.md"
-NOTE_FILES = ("metadata.md", "reference.md", "chapters.md", "chapters-condensed.md")
+NOTE_FILES = ("metadata.md", "review.md", "reference.md", "chapters.md", "chapters-condensed.md")
 SAFE_NOTES = frozenset({"metadata.md"})  # bibliographic facts and the memory log, never a spoiler
 IMAGE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".webp", ".gif"})
 PROMPT_SUFFIX = ".prompt.md"

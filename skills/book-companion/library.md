@@ -1,8 +1,8 @@
 # Book Companion library — shared rules
 
-These rules are shared by the `book-companion`, `book-import`, and `book-images` skills. Read this file before doing any library work.
+These rules are shared by the `book-companion`, `book-import`, `book-images`, and `book-review` skills. Read this file before doing any library work.
 
-You are the agent responsible for maintaining this personal book library and helping the user explore books without spoilers. Do the useful work directly: inspect EPUBs, identify bibliographic information, convert books to text, search and read relevant passages, maintain entity profiles, prepare image-generation prompts, organize user-supplied generated images, and create the book memory when the user has finished a book.
+You are the agent responsible for maintaining this personal book library and helping the user explore books without spoilers. Do the useful work directly: inspect EPUBs, identify bibliographic information, convert books to text, search and read relevant passages, maintain entity profiles, prepare image-generation prompts, organize user-supplied generated images, create the book memory when the user has finished a book, and write down their review of it.
 
 Do not turn this project into a software-engineering exercise. Prefer the tools already available in your environment and ordinary filesystem operations. Do not create a custom EPUB parser, retrieval system, database, vector store, MCP server, web application, or Python library unless the user explicitly asks for one.
 
@@ -40,7 +40,8 @@ The library root is the folder the user works in: the one that holds `books/` an
             │       ├── metadata.md            # bibliographic facts; the book memory's log (runs, model, cost, reviews)
             │       ├── chapters.md            # book memory, only after the user finishes: chapter notes
             │       ├── chapters-condensed.md  # optional, on request: condensed chapter notes
-            │       └── reference.md           # book memory: structure, cast, world, end state
+            │       ├── reference.md           # book memory: structure, cast, world, end state
+            │       └── review.md              # the user's own review, after finishing (book-review)
             ├── characters/
             │   └── <character-slug>/
             │       ├── description.md

@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/cheshire0xff/book-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/cheshire0xff/book-companion/actions/workflows/ci.yml)
 
-A spoiler-safe companion for your own EPUB library, run by an AI agent (Claude Code). The library is ordinary files and folders on your machine; this repository holds only the tools and skills, never any books. Four skills handle the work:
+A spoiler-safe companion for your own EPUB library, run by an AI agent (Claude Code). The library is ordinary files and folders on your machine; this repository holds only the tools and skills, never any books. Five skills handle the work:
 
 | Skill | Use it for |
 | --- | --- |
@@ -10,6 +10,7 @@ A spoiler-safe companion for your own EPUB library, run by an AI agent (Claude C
 | `/book-companion:book-images` | Preparing image prompts and importing generated images |
 | `/book-companion:book-companion` | Spoiler-safe questions, entity profiles, reading progress |
 | `/book-companion:book-memory-extraction` | The book memory of a finished book, and condensing it |
+| `/book-companion:book-review` | Your own review of a book you've finished, written from an interview |
 
 You can also just ask in plain language; the agent picks the skill from its description. Shared rules live in `skills/book-companion/library.md` (layout, file safety) and `spoiler-rules.md` (reading boundary), which the skills read before working.
 
@@ -33,7 +34,7 @@ The tools and the library are separate. You install the plugin and the `book-sea
 
 4. **Create your library:** an empty folder with `_incoming/epubs/` and `_incoming/images/` inside. Open that folder in VS Code (or start `claude` in it). The skills treat the current folder as the library. Keeping it in a private git repository is a good way to back it up; never publish it, since it holds your books.
 
-**Other agents.** The skills follow the [Agent Skills](https://agentskills.io) format and refer to their own files by paths relative to the skill folder, so other agents that support skills can use them too. For GitHub Copilot in VS Code, put the four folders from `skills/` in `~/.copilot/skills/` (copies, or junctions to a clone so updates apply), or in your library's `.github/skills/`. Install `book-search` the same way as above. Don't also put them in `~/.claude/skills/` if you use the Claude Code plugin, or Claude Code loads them twice.
+**Other agents.** The skills follow the [Agent Skills](https://agentskills.io) format and refer to their own files by paths relative to the skill folder, so other agents that support skills can use them too. For GitHub Copilot in VS Code, put the five folders from `skills/` in `~/.copilot/skills/` (copies, or junctions to a clone so updates apply), or in your library's `.github/skills/`. Install `book-search` the same way as above. Don't also put them in `~/.claude/skills/` if you use the Claude Code plugin, or Claude Code loads them twice.
 
 ## Import a book
 
@@ -107,15 +108,21 @@ The book's `metadata.md` ends with a short log of its memory: each run adds a da
 
 There is no memory for a book you haven't finished. While you are reading, questions and recaps are answered from the text up to your progress.
 
+## Review a book
+
+When you've finished a book, ask the agent to interview you about it: **`/book-companion:book-review Let's review Empire of Silence.`** It asks one question at a time, starting with your gut reaction and following up on what you say: characters, scenes, the ending, how the book compares with earlier volumes and what you expect from the next one, and finally a rating out of 5 stars, which you can skip. Say "that's enough" whenever you like. It then writes `review.md` in the book's folder, in the first person and in your own words, tidied up, and makes any changes you ask for.
+
+The agent doesn't read the book for this, which keeps it cheap. If the book has a memory, it reads `chapters-condensed.md` (when there is one) and `reference.md` to ask about specific characters and moments; without one, it works from what you tell it. Come back after a reread and it adds a dated section, keeping what you wrote before.
+
 ## Browse the library
 
 Run `book-view` in your library folder (or `book-view path/to/library`). It starts a small web server on this computer only (`http://127.0.0.1:8765/`), opens your browser, and runs until you press Ctrl+C:
 
 - **Library:** every series and standalone book, with your reading progress and image thumbnails.
-- **Series:** the books with their notes (metadata, reference, chapter notes), and a card for each character, location, faction or object.
+- **Series:** the books with their notes (metadata, your review, reference, chapter notes), and a card for each character, location, faction or object.
 - **Entity:** its images, each with its prompt in a collapsible box, next to the rendered `description.md`, plus any prompts still waiting for an image.
 
-Pages are rendered from the files on every request, so reload after adding an image or editing a note. Memory notes of books past your recorded progress stay behind a "⚠ Spoilers … Show anyway" box until you open it. The viewer never shows a book's text (`book.txt`, `book-html/`, `source.epub`) or anything outside the library. Use `--port N` if 8765 is taken, and `--no-browser` to only print the address.
+Pages are rendered from the files on every request, so reload after adding an image or editing a note. Memory notes and reviews of books past your recorded progress stay behind a "⚠ Spoilers … Show anyway" box until you open it. The viewer never shows a book's text (`book.txt`, `book-html/`, `source.epub`) or anything outside the library. Use `--port N` if 8765 is taken, and `--no-browser` to only print the address.
 
 The "Palette" menu at the top right switches the color palette: Forest & Moss (the default), Midnight & Gold, Parchment & Oxblood, Graphite & Indigo, Velvet Plum or Leather. Your browser remembers the choice in a cookie; light or dark follows your system setting. Palettes are defined in `src/book_companion/view/themes.py`; adding one there adds it to the picker, and the tests check that its text stays readable.
 
@@ -132,7 +139,8 @@ book-companion/
 │   ├── book-companion/         # SKILL.md + shared library.md and spoiler-rules.md
 │   ├── book-import/
 │   ├── book-images/
-│   └── book-memory-extraction/ # SKILL.md + condensing.md and memory-log.md
+│   ├── book-memory-extraction/ # SKILL.md + condensing.md and memory-log.md
+│   └── book-review/
 ├── pyproject.toml, uv.lock     # uv project; provides the `book-search`, `book-convert` and `book-view` commands
 ├── src/book_companion/
 │   ├── core/                   # book structure, reading progress, spoiler boundary
