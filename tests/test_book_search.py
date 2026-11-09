@@ -289,6 +289,16 @@ def test_book_directory_inside_series_uses_series_progress(
     assert code == 2 and "book 2 only" in err
 
 
+@pytest.mark.parametrize("cwd, target", [("books", "02-parts"), ("books/02-parts", ".")])
+def test_relative_book_path_still_finds_the_series(
+        series: Builder, capsys: Capture, monkeypatch: pytest.MonkeyPatch,
+        cwd: str, target: str) -> None:
+    root = Path(series(progress("reading", chapter="1", part="2", book="2")))
+    monkeypatch.chdir(root / cwd)
+    out = run(capsys, "search", target, "gamma|delta", "--regex")[1]
+    assert "**gamma**" in out and "**delta**" not in out
+
+
 def test_series_check_reports_each_book(series: Builder, capsys: Capture) -> None:
     out = run(capsys, "check", series(progress("not started", book="2")))[1]
     assert "book 2, not started" in out
@@ -409,3 +419,59 @@ def test_read_range_and_resume_flags_do_not_mix(flat: Builder, capsys: Capture) 
     code, _, err = run(capsys, "read", flat(), "--chapter", "2", "--from", "1",
                        "--start-paragraph", "2")
     assert code == 2 and "not both" in err
+
+
+# -- reading on through a later point -------------------------------------------
+
+def test_read_through_a_later_chapter(flat: Builder, capsys: Capture) -> None:
+    out = run(capsys, "read", flat(progress("finished")), "--chapter", "1",
+              "--through-chapter", "4")[1]
+    for text in ("gate", "tattoo", "moon", "Continuation", "Gilliam", "Quiet"):
+        assert text in out
+    assert "final scene" not in out
+
+
+def test_read_through_stops_at_reading_progress(flat: Builder, capsys: Capture) -> None:
+    book = flat()  # progress: chapter 2
+    out = run(capsys, "read", book, "--chapter", "1", "--through-chapter", "4")[1]
+    assert "moon" in out and "Gilliam" not in out
+    assert "beyond the reading progress" in out
+    out = run(capsys, "read", book, "--chapter", "1", "--through-chapter", "4",
+              "--allow-spoilers")[1]
+    assert "Gilliam" in out and "Quiet" in out
+
+
+def test_read_pages_through_a_whole_book(flat: Builder, capsys: Capture) -> None:
+    book = flat(progress("finished"))
+    seen: list[str] = []
+    out = run(capsys, "read", book, "--chapter", "1", "--through-section", "7",
+              "--max-chars", "1")[1]
+    for _ in range(20):
+        seen += [line for line in out.splitlines() if line.startswith("¶")]
+        if "Output limit reached" not in out:
+            break
+        assert "--through-section 7" in out
+        out = run(capsys, "read", book, *_continuation(out), "--max-chars", "1")[1]
+    text = " ".join(seen)
+    assert "gate" in text and "moon" in text and "final scene" in text
+    assert len(seen) == len(set(seen))  # nothing repeated, nothing skipped
+
+
+def test_read_through_a_chapter_in_a_later_part(parts: Builder, capsys: Capture) -> None:
+    book = parts(progress("finished"))
+    out = run(capsys, "read", book, "--chapter", "2", "--part", "1",
+              "--through-chapter", "1", "--through-part", "2")[1]
+    assert "beta" in out and "part two page" in out and "gamma" in out
+    assert "alpha" not in out and "delta" not in out
+    code, _, err = run(capsys, "read", book, "--chapter", "1", "--part", "1",
+                       "--through-part", "2")
+    assert code == 2 and "together with --through-chapter" in err
+
+
+def test_read_through_must_follow_what_is_read(flat: Builder, capsys: Capture) -> None:
+    book = flat(progress("finished"))
+    code, _, err = run(capsys, "read", book, "--chapter", "3", "--through-chapter", "1")
+    assert code == 2 and "must not come before" in err
+    code, _, err = run(capsys, "read", book, "--section", "3", "--from", "1",
+                       "--through-chapter", "4")
+    assert code == 2 and "leave out" in err

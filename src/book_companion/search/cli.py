@@ -27,7 +27,7 @@ from book_companion.core.cli import (
 )
 from book_companion.core.errors import BookError
 from book_companion.core.library import Target, Volume, location
-from book_companion.core.structure import describe_chapter, find_chapter
+from book_companion.core.structure import Book, Section, describe_chapter, find_chapter
 from book_companion.core.text import Match, compile_query, find_matches, highlight, snippet
 
 
@@ -139,6 +139,17 @@ def cmd_search(target: Target, args: argparse.Namespace) -> None:
         print("Or narrow it: a tighter query, --word, or a --start-*/--chapter range.")
 
 
+def _through(book: Book, args: argparse.Namespace) -> Section | None:
+    """The later point a read goes on through, if --through-* was given."""
+    if args.through_part is not None and args.through_chapter is None:
+        raise BookError("--through-part is only used together with --through-chapter.")
+    if args.through_chapter is not None:
+        return find_chapter(book, args.through_chapter, args.through_part)
+    if args.through_section is not None:
+        return book.section(args.through_section)
+    return None
+
+
 def cmd_read(target: Target, args: argparse.Namespace) -> None:
     volume = target.volume(args.book)
     book = volume.book
@@ -150,19 +161,27 @@ def cmd_read(target: Target, args: argparse.Namespace) -> None:
         section = book.section(args.section)
     else:
         raise BookError("Say what to read: --chapter N (with --part if needed) or --section N.")
+    through = _through(book, args)
+    if through is not None and through.number < section.number:
+        raise BookError("--through-chapter/--through-section must not come before what is "
+                        "being read.")
 
     scope = recorded_scopes(target)[target.volumes.index(volume)]
-    if not scope.allows(section):
-        if not args.allow_spoilers:
-            raise BookError("That is beyond the reading progress. Add --allow-spoilers only "
-                            "if the user explicitly allowed it for this request.")
+    if args.allow_spoilers:
         scope = Scope(True, None, "--allow-spoilers: whole book")
+    elif not scope.allows(section):
+        raise BookError("That is beyond the reading progress. Add --allow-spoilers only "
+                        "if the user explicitly allowed it for this request.")
 
     ranged = args.start is not None or args.end is not None
     resuming = args.start_section is not None or args.start_paragraph is not None
     if ranged and resuming:
         raise BookError("Use --from/--to or --start-section/--start-paragraph, not both.")
-    last = section.number if ranged else book.subtree_end(section)
+    if ranged and through is not None:
+        raise BookError("--from/--to read part of one section; leave out "
+                        "--through-chapter/--through-section.")
+    last = section.number if ranged else max(book.subtree_end(section),
+                                             book.subtree_end(through or section))
     first_section = args.start_section or section.number
     if not section.number <= first_section <= last:
         raise BookError(f"--start-section must be within sections {section.number}-{last} "
@@ -170,6 +189,8 @@ def cmd_read(target: Target, args: argparse.Namespace) -> None:
 
     flags = [f"--book {volume.number}"] if target.is_series and target.only is None else []
     flags.append(f"--section {section.number}")
+    if through is not None:
+        flags.append(f"--through-section {through.number}")
     if args.allow_spoilers:
         flags.append("--allow-spoilers")
     used = 0
@@ -350,12 +371,23 @@ def build_parser() -> argparse.ArgumentParser:
     output.add_argument("--count", action="store_true", help="only count matches per section")
     output.add_argument("--max-chars", type=positive_int, default=12000, metavar="N",
                         help="stop printing results after about N characters (default "
-                             "12000) and print the --start-* flags that continue")
+                             "12000) and print the --start-* flags that continue; lower it "
+                             "if your output gets cut off")
 
-    read = sub.add_parser(Command.READ, help="print a chapter or section within the boundary",
+    read = sub.add_parser(Command.READ,
+                          help="print a chapter, a section, or a run of them, within the boundary",
                           epilog=CONCEPTS, formatter_class=FORMATTER)
     add_target(read)
     add_point(read, "what to read")
+    on = read.add_argument_group(
+        "reading on (optional): go on through a later point, e.g. a whole book in order")
+    ends = on.add_mutually_exclusive_group()
+    ends.add_argument("--through-chapter", type=positive_int, metavar="N",
+                      help="go on through this chapter, e.g. --chapter 1 --through-chapter 10")
+    ends.add_argument("--through-section", type=positive_int, metavar="N",
+                      help="go on through this section")
+    on.add_argument("--through-part", type=positive_int, metavar="P",
+                    help="with --through-chapter, when numbering restarts in each part")
     add_spoilers(read, with_all=False)
     paragraphs = read.add_argument_group("paragraph range")
     paragraphs.add_argument("--from", dest="start", type=positive_int, metavar="P",
@@ -366,7 +398,7 @@ def build_parser() -> argparse.ArgumentParser:
         "paging (the tool prints these flags when output is cut off)")
     paging.add_argument("--max-chars", type=positive_int, default=24000, metavar="N",
                         help="stop after about N characters (default 24000) and print "
-                             "the flags that continue")
+                             "the flags that continue; lower it if your output gets cut off")
     paging.add_argument("--start-section", type=positive_int, metavar="N",
                         help="continue at this section of what is being read")
     paging.add_argument("--start-paragraph", type=positive_int, metavar="P",

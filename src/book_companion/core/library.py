@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -81,6 +82,9 @@ class Target:
 
 
 def load_target(path: Path) -> Target:
+    # Absolute, so that '.' or a bare '01-…' still shows the series folders above it.
+    # abspath, not resolve(): it keeps symlinked folders and mapped drives as given.
+    path = Path(os.path.abspath(path))
     prefix = re.match(r"(\d+)-", path.name)
     if (path / "book-html").is_dir():
         if path.parent.name == "books" and prefix:  # one book inside a series

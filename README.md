@@ -73,6 +73,7 @@ The agent searches with `book-search`. Pointed at a series directory, it searche
 book-search search   books/christopher-ruocchio/sun-eater "Valka" --word --count
 book-search search   books/christopher-ruocchio/sun-eater "Valka" --book 1 --chapter 46
 book-search read     books/christopher-ruocchio/sun-eater --book 1 --chapter 46
+book-search read     books/christopher-ruocchio/sun-eater --book 1 --chapter 40 --through-chapter 46
 book-search chapters books/christopher-ruocchio/sun-eater
 book-search check    books/christopher-ruocchio/sun-eater   # structure report, no titles
 ```
