@@ -17,8 +17,8 @@ XHTML = """<?xml version='1.0' encoding='utf-8'?>
 
 
 def progress(status: str, chapter: str = "", part: str = "", section: str = "",
-             book: str = "") -> str:
-    return (f"---\nbook: {book}\nstatus: {status}  # not started | reading | finished\n"
+             volume: str = "") -> str:
+    return (f"---\nvolume: {volume}\nstatus: {status}  # not started | reading | finished\n"
             f"chapter: {chapter}\npart: {part}\nsection: {section}\nupdated: 2026-11-08\n---\n\n"
             "# Reading progress\n\n- Status: this human line is ignored by the tool\n")
 
@@ -119,12 +119,12 @@ def parts(tmp_path: Path) -> Builder:
 
 @pytest.fixture
 def series(tmp_path: Path) -> Builder:
-    """Book 1 = the flat book, book 2 = the parts book, one series-level progress file."""
+    """Volume 1 = the flat book, volume 2 = the parts book, one series-level progress file."""
     def build(text: str) -> str:
         root = tmp_path / "series"
-        if not (root / "books").exists():
-            make_book(root / "books" / "01-flat", "Flat Book", FLAT_FILES, FLAT_TOC)
-            make_book(root / "books" / "02-parts", "Parts Book", PARTS_FILES, PARTS_TOC)
+        if not (root / "volumes").exists():
+            make_book(root / "volumes" / "01-flat", "Flat Book", FLAT_FILES, FLAT_TOC)
+            make_book(root / "volumes" / "02-parts", "Parts Book", PARTS_FILES, PARTS_TOC)
         (root / "reading-progress.md").write_text(text, encoding="utf-8")
         return str(root)
     return build

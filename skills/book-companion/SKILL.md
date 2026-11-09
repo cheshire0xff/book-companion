@@ -23,7 +23,7 @@ Related skills:
 When the user asks about a character, location, faction, object, event, or setting detail:
 
 1. Check the reading checkpoint first, following `spoiler-rules.md`.
-2. Search the relevant text only up to the safe boundary, with `book-search` as described in `spoiler-rules.md`. For a series, search the series directory so earlier books count too.
+2. Search the relevant text only up to the safe boundary, with `book-search` as described in `spoiler-rules.md`. For a series, search the series directory so earlier volumes count too.
 3. Read enough surrounding text to understand context. Do not rely on an isolated keyword hit when it could be misleading.
 4. Answer the actual question directly, before any supporting detail. Do not produce a long lore essay unless requested.
 5. Separate the answer into clearly labelled categories when useful:

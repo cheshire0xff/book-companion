@@ -277,7 +277,7 @@ def cmd_check(target: Target, _args: argparse.Namespace) -> None:
     try:
         end = recorded_end(target)
         progress = target.progress()
-        where = f"volume {progress.book}, " if progress.book is not None else ""
+        where = f"volume {progress.volume}, " if progress.volume is not None else ""
         print(f"Reading progress ({target.progress_path}): {where}{progress.status}")
         start = Position(0, 0, 1)
         descriptions = [coverage(target, index, start, end, outside="not read yet")

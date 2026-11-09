@@ -50,10 +50,10 @@ def test_parse_chapter_number(label: str, expected: int | None) -> None:
 
 def test_progress_front_matter_is_read(tmp_path: Path) -> None:
     path = tmp_path / "reading-progress.md"
-    path.write_text(progress("reading", chapter="5", part="2", book="3"), encoding="utf-8")
+    path.write_text(progress("reading", chapter="5", part="2", volume="3"), encoding="utf-8")
     result = parse_progress(path)
     assert result.status is Status.READING
-    assert (result.book, result.chapter, result.part, result.section) == (3, 5, 2, None)
+    assert (result.volume, result.chapter, result.part, result.section) == (3, 5, 2, None)
 
 
 @pytest.mark.parametrize("text, message", [
@@ -66,7 +66,8 @@ def test_progress_front_matter_is_read(tmp_path: Path) -> None:
     ("---\nstatus: reading\npart: 2\n---\n", "together with chapter"),
     ("---\nstatus: reading\nstatus: finished\n---\n", "set twice"),
     ("---\nstatus: reading\nupdated: yesterday\n---\n", "YYYY-MM-DD"),
-    ("---\nbook: two\nstatus: reading\n---\n", "whole number"),
+    ("---\nvolume: two\nstatus: reading\n---\n", "whole number"),
+    ("---\nbook: 2\nstatus: reading\n---\n", "'book:' is now 'volume:'"),
 ])
 def test_progress_front_matter_is_strict(tmp_path: Path, text: str, message: str) -> None:
     path = tmp_path / "reading-progress.md"
@@ -270,7 +271,7 @@ def test_check_reports_restarting_numbering(parts: Builder, capsys: Capture) -> 
 
 def test_series_story_point_reads_earlier_volumes_in_full(
         series: Builder, capsys: Capture) -> None:
-    root = series(progress("reading", chapter="1", part="1", book="2"))
+    root = series(progress("reading", chapter="1", part="1", volume="2"))
     out = run(capsys, "search", root, "final|alpha|beta", "--regex")[1]
     assert "reading progress: through volume 2 part 1 chapter 1" in out
     assert "Volume 1: Flat Book: whole volume" in out
@@ -280,14 +281,14 @@ def test_series_story_point_reads_earlier_volumes_in_full(
 
 
 def test_series_later_volumes_are_excluded(series: Builder, capsys: Capture) -> None:
-    root = series(progress("reading", chapter="2", book="1"))
+    root = series(progress("reading", chapter="2", volume="1"))
     out = run(capsys, "search", root, "moon|alpha", "--regex")[1]
     assert "**moon**" in out and "**alpha**" not in out
     assert "Volume 2: Parts Book: excluded" in out
 
 
 def test_series_narrowing_excludes_later_volumes(series: Builder, capsys: Capture) -> None:
-    root = series(progress("finished", book="2"))
+    root = series(progress("finished", volume="2"))
     out = run(capsys, "search", root, "gate|final|alpha", "--regex",
               "--to", "volume 1 chapter 1")[1]
     assert "**gate**" in out and "**final**" not in out and "**alpha**" not in out
@@ -295,7 +296,7 @@ def test_series_narrowing_excludes_later_volumes(series: Builder, capsys: Captur
 
 
 def test_series_place_past_progress_needs_permission(series: Builder, capsys: Capture) -> None:
-    root = series(progress("reading", chapter="1", part="1", book="2"))
+    root = series(progress("reading", chapter="1", part="1", volume="2"))
     code, _, err = run(capsys, "search", root, "delta", "--to", "volume 2")
     assert code == 2 and "through volume 2 part 1 chapter 1" in err
     out = run(capsys, "search", root, "delta", "--to", "v2", "--allow-spoilers")[1]
@@ -303,14 +304,14 @@ def test_series_place_past_progress_needs_permission(series: Builder, capsys: Ca
 
 
 def test_from_a_volume_leaves_out_the_earlier_ones(series: Builder, capsys: Capture) -> None:
-    root = series(progress("reading", chapter="1", part="1", book="2"))
+    root = series(progress("reading", chapter="1", part="1", volume="2"))
     out = run(capsys, "search", root, "gate|alpha", "--regex", "--from", "volume 2")[1]
     assert "**alpha**" in out and "**gate**" not in out
     assert "Volume 1: Flat Book: excluded" in out
 
 
 def test_series_places_name_their_volume(series: Builder, capsys: Capture) -> None:
-    root = series(progress("not started", book="2"))
+    root = series(progress("not started", volume="2"))
     code, _, err = run(capsys, "search", root, "gate", "--to", "chapter 1")
     assert code == 2 and 'e.g. "volume 1 chapter 1"' in err
     code, _, err = run(capsys, "read", root, "chapter 1")
@@ -319,7 +320,7 @@ def test_series_places_name_their_volume(series: Builder, capsys: Capture) -> No
 
 
 def test_to_without_a_volume_is_in_the_volume_of_from(series: Builder, capsys: Capture) -> None:
-    root = series(progress("finished", book="2"))
+    root = series(progress("finished", volume="2"))
     out = run(capsys, "search", root, "tattoo|Gilliam|Quiet", "--regex",
               "--from", "volume 1 chapter 2", "--to", "chapter 3")[1]
     assert "**tattoo**" in out and "**Gilliam**" in out and "**Quiet**" not in out
@@ -327,26 +328,26 @@ def test_to_without_a_volume_is_in_the_volume_of_from(series: Builder, capsys: C
 
 def test_series_progress_needs_book(series: Builder, capsys: Capture) -> None:
     code, _, err = run(capsys, "search", series(progress("reading", chapter="2")), "gate")
-    assert code == 2 and "set 'book'" in err
+    assert code == 2 and "set 'volume'" in err
 
 
 def test_series_progress_book_may_be_one_past_the_imported_volumes(
         series: Builder, capsys: Capture) -> None:
-    out = run(capsys, "search", series(progress("reading", chapter="3", book="3")), "delta")[1]
+    out = run(capsys, "search", series(progress("reading", chapter="3", volume="3")), "delta")[1]
     assert "**delta**" in out  # volumes 1 and 2 count as read; volume 3 isn't imported yet
-    code, _, err = run(capsys, "search", series(progress("reading", book="9")), "delta")
+    code, _, err = run(capsys, "search", series(progress("reading", volume="9")), "delta")
     assert code == 2 and "past the imported volumes" in err
 
 
 def test_standalone_progress_rejects_book(flat: Builder, capsys: Capture) -> None:
-    code, _, err = run(capsys, "search", flat(progress("reading", chapter="2", book="1")), "gate")
+    code, _, err = run(capsys, "search", flat(progress("reading", chapter="2", volume="1")), "gate")
     assert code == 2 and "only used in a series" in err
 
 
 def test_volume_directory_inside_series_uses_series_progress(
         series: Builder, capsys: Capture) -> None:
-    root = Path(series(progress("reading", chapter="1", part="2", book="2")))
-    volume = str(root / "books" / "02-parts")
+    root = Path(series(progress("reading", chapter="1", part="2", volume="2")))
+    volume = str(root / "volumes" / "02-parts")
     out = run(capsys, "search", volume, "gamma|delta|final", "--regex")[1]
     assert "**gamma**" in out and "**delta**" not in out and "**final**" not in out
     assert "alpha" in run(capsys, "read", volume, "part 1 chapter 1")[1]
@@ -356,23 +357,23 @@ def test_volume_directory_inside_series_uses_series_progress(
 
 
 def test_a_later_volume_directory_is_past_the_progress(series: Builder, capsys: Capture) -> None:
-    root = Path(series(progress("reading", chapter="2", book="1")))
-    code, _, err = run(capsys, "search", str(root / "books" / "02-parts"), "alpha")
+    root = Path(series(progress("reading", chapter="2", volume="1")))
+    code, _, err = run(capsys, "search", str(root / "volumes" / "02-parts"), "alpha")
     assert code == 2 and "Nothing here is within the reading progress" in err
 
 
-@pytest.mark.parametrize("cwd, target", [("books", "02-parts"), ("books/02-parts", ".")])
+@pytest.mark.parametrize("cwd, target", [("volumes", "02-parts"), ("volumes/02-parts", ".")])
 def test_relative_volume_path_still_finds_the_series(
         series: Builder, capsys: Capture, monkeypatch: pytest.MonkeyPatch,
         cwd: str, target: str) -> None:
-    root = Path(series(progress("reading", chapter="1", part="2", book="2")))
+    root = Path(series(progress("reading", chapter="1", part="2", volume="2")))
     monkeypatch.chdir(root / cwd)
     out = run(capsys, "search", target, "gamma|delta", "--regex")[1]
     assert "**gamma**" in out and "**delta**" not in out
 
 
 def test_series_check_reports_each_volume(series: Builder, capsys: Capture) -> None:
-    out = run(capsys, "check", series(progress("not started", book="2")))[1]
+    out = run(capsys, "check", series(progress("not started", volume="2")))[1]
     assert "volume 2, not started" in out
     assert "## Volume 1" in out and "Reading progress:             whole volume" in out
     assert "## Volume 2" in out and "Reading progress:             not read yet" in out
@@ -384,9 +385,9 @@ def test_series_check_reports_invalid_progress(series: Builder, capsys: Capture)
 
 
 def test_series_rejects_volume_folder_without_prefix(tmp_path: Path, capsys: Capture) -> None:
-    make_book(tmp_path / "series" / "books" / "flat", "Flat Book", FLAT_FILES, FLAT_TOC)
+    make_book(tmp_path / "series" / "volumes" / "flat", "Flat Book", FLAT_FILES, FLAT_TOC)
     (tmp_path / "series" / "reading-progress.md").write_text(
-        progress("finished", book="1"), encoding="utf-8")
+        progress("finished", volume="1"), encoding="utf-8")
     code, _, err = run(capsys, "check", str(tmp_path / "series"))
     assert code == 2 and "volume prefix" in err
 
@@ -447,7 +448,7 @@ def test_output_budget_prints_next_page_command_that_resumes(
 
 
 def test_next_page_keeps_to(series: Builder, capsys: Capture) -> None:
-    root = series(progress("finished", book="2"))
+    root = series(progress("finished", volume="2"))
     out = run(capsys, "search", root, "e", "--from", "volume 1 chapter 1", "--to", "ch3",
               "--max-chars", "1")[1]
     argv = next_page(out)
@@ -574,7 +575,18 @@ def test_read_to_must_follow_from(flat: Builder, capsys: Capture) -> None:
 
 
 def test_read_across_volumes(series: Builder, capsys: Capture) -> None:
-    out = run(capsys, "read", series(progress("finished", book="2")),
+    out = run(capsys, "read", series(progress("finished", volume="2")),
               "--from", "volume 1 chapter 5", "--to", "volume 2 part 1 chapter 1")[1]
     assert "final scene" in out and "part one page" in out and "alpha" in out
     assert "beta" not in out and "Quiet" not in out
+
+
+# -- libraries from before volumes/ ---------------------------------------------
+
+def test_a_series_with_books_folder_says_to_rename_it(tmp_path: Path, capsys: Capture) -> None:
+    root = tmp_path / "series"
+    make_book(root / "books" / "01-flat", "Flat Book", FLAT_FILES, FLAT_TOC)
+    (root / "reading-progress.md").write_text(progress("finished", volume="1"), encoding="utf-8")
+    for target in (root, root / "books" / "01-flat"):
+        code, _, err = run(capsys, "check", str(target))
+        assert code == 2 and "Rename that folder to volumes/" in err

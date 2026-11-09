@@ -78,35 +78,47 @@ def load_target(path: Path) -> Target:
     # abspath, not resolve(): it keeps symlinked folders and mapped drives as given.
     path = Path(os.path.abspath(path))
     prefix = re.match(r"(\d+)-", path.name)
+    for series_dir in (path, path.parent.parent):
+        if _old_layout(series_dir):
+            raise BookError(f"{series_dir} keeps its volumes in books/. Rename that folder to "
+                            "volumes/, and 'book:' to 'volume:' in reading-progress.md.")
     if (path / "book-html").is_dir():
-        if path.parent.name == "books" and prefix:  # one book inside a series
+        if path.parent.name == "volumes" and prefix:  # one volume inside a series
             series_dir = path.parent.parent
             return Target(f"{series_dir.name}/{path.name}", _load_series(series_dir), True,
                           series_dir / "reading-progress.md", only=int(prefix.group(1)))
         return Target(path.name, [Volume(path, None, load_book(path))], False,
                       path / "reading-progress.md")
-    if (path / "books").is_dir():
+    if (path / "volumes").is_dir():
         return Target(path.name, _load_series(path), True, path / "reading-progress.md")
     raise BookError(f"{path} is neither a book directory (with book-html/) "
-                    "nor a series directory (with books/).")
+                    "nor a series directory (with volumes/).")
+
+
+def _old_layout(series_dir: Path) -> bool:
+    """A series from before volumes/: its numbered volume folders are in books/."""
+    old = series_dir / "books"
+    return (not (series_dir / "volumes").is_dir() and old.is_dir()
+            and any(re.match(r"\d+-", d.name) and (d / "book-html").is_dir()
+                    for d in old.iterdir() if d.is_dir()))
 
 
 def _load_series(series_dir: Path) -> list[Volume]:
-    books_dir = series_dir / "books"
+    books_dir = series_dir / "volumes"
     numbered: list[tuple[int, Path]] = []
     for book_dir in sorted(d for d in books_dir.iterdir() if d.is_dir()):
         prefix = re.match(r"(\d+)-", book_dir.name)
         if not prefix:
-            raise BookError(f"{book_dir} has no volume prefix; series books must be "
+            raise BookError(f"{book_dir} has no volume prefix; volumes must be "
                             "named <volume>-<slug>, e.g. 01-empire-of-silence.")
         if not (book_dir / "book-html").is_dir():
             raise BookError(f"{book_dir} has no book-html/; finish importing it first.")
         numbered.append((int(prefix.group(1)), book_dir))
     if not numbered:
-        raise BookError(f"{books_dir} contains no books.")
+        raise BookError(f"{books_dir} contains no volumes.")
     numbers = [number for number, _ in numbered]
     if len(set(numbers)) != len(numbers):
-        raise BookError(f"Two books in {books_dir} share a volume number.")
+        raise BookError(f"Two volumes in {books_dir} share a volume number.")
     return [Volume(book_dir, number, load_book(book_dir))
             for number, book_dir in sorted(numbered)]
 

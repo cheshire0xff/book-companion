@@ -32,7 +32,7 @@ The library root is the folder the user works in: the one that holds `books/` an
         └── <series-slug>/
             ├── reading-progress.md       # one story point for the whole series
             ├── series.md                 # optional; only when useful
-            ├── books/
+            ├── volumes/
             │   └── <volume>-<book-slug>/
             │       ├── source.epub
             │       ├── book.txt               # plain-text copy

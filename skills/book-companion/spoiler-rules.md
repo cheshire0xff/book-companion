@@ -7,20 +7,20 @@ These rules are shared by the `book-companion` and `book-images` skills, and `bo
 - **Chapter:** the number a reader uses ("chapter 46"). The search tool reads it from the book's table of contents.
 - **Part:** only for books whose chapter numbering restarts in each part. "Book Two, chapter 5" is part 2, chapter 5. The import `check` reports when this applies.
 - **Section:** every item of the book's table of contents, numbered 1, 2, 3… in reading order: cover, prologue, part pages, chapters, interludes, epilogue. Every chapter is also a section. Section numbers are needed only for a place without a chapter number, such as a prologue or interlude. `chapters` lists them.
-- **Book:** in a series, the volume number from the book folder's prefix (`01-empire-of-silence` is book 1).
+- **Volume:** one book of a series, numbered by its folder's prefix (`volumes/01-empire-of-silence` is volume 1). Whatever the author calls the divisions inside a volume (Book One, Part II, Act 3) is a part.
 
 ## Reading-progress file
 
-There is **one `reading-progress.md` per series**, in the series directory (`books/<author>/<series>/`). A standalone novel has its own in its book directory. The file records a single **story point**: the book being read and how far into it. Books before it count as read, books after it as unread. This assumes the series is read in volume order.
+There is **one `reading-progress.md` per series**, in the series directory (`books/<author>/<series>/`). A standalone novel has its own in its book directory. The file records a single **story point**: the volume being read and how far into it. Volumes before it count as read, volumes after it as unread. This assumes the series is read in volume order.
 
 The search tool reads **only the front-matter block** between the `---` lines; everything below it is free-form notes for the user. Use this template:
 
 ```markdown
 ---
-book: 1             # the book being read (volume number from its folder prefix)
-status: not started # that book: not started | reading | finished
-chapter:            # last completed chapter in that book
-part:               # only if that book's chapter numbering restarts in each part
+volume: 1           # the volume being read (the number from its folder prefix)
+status: not started # that volume: not started | reading | finished
+chapter:            # last completed chapter in that volume
+part:               # only if that volume's chapter numbering restarts in each part
 section:            # instead of chapter, for a place without a chapter number
 updated: YYYY-MM-DD
 ---
@@ -35,17 +35,17 @@ updated: YYYY-MM-DD
 - Physical page numbers refer to the user's physical edition; EPUB/TXT pagination has not been assumed to match it.
 ```
 
-For a standalone novel, leave out the `book:` line.
+For a standalone novel, leave out the `volume:` line.
 
 The front matter is strict, and the tool refuses to search when it is invalid:
 
-- `book` is required in a series and not allowed for a standalone novel. It may be one past the highest imported volume (the user is reading a book that is not in the library yet).
-- `status` is exactly `not started`, `reading` or `finished`, and describes that book.
+- `volume` is required in a series and not allowed for a standalone novel. It may be one past the highest imported volume (the user is reading a volume that is not in the library yet).
+- `status` is exactly `not started`, `reading` or `finished`, and describes that volume.
 - `chapter`, `part` and `section` are whole numbers or empty. Set `chapter` or `section`, never both. `part` is only used together with `chapter`.
 - `updated` is a date (`YYYY-MM-DD`) or empty.
 - Unknown or repeated keys are errors. Comments after `#` are ignored.
 
-`status: finished` makes the whole of that book searchable, so `chapter` no longer matters. `status: reading` with no chapter or section means nothing of that book is completed yet.
+`status: finished` makes the whole of that volume searchable, so `chapter` no longer matters. `status: reading` with no chapter or section means nothing of that volume is completed yet.
 
 ## Recording progress
 
@@ -54,7 +54,7 @@ Update this file only when the user explicitly tells you their progress or asks 
 The user may update progress informally, for example "I've finished chapter 18", "I'm on page 247, in chapter 19", or "I finished the book". Interpret updates conservatively:
 
 - "Finished chapter 18" means `chapter: 18` in the current book.
-- "I finished book 1" means `book: 1`, `status: finished`. "I started book 2" means `book: 2`, `status: reading`, with `chapter` and `section` empty.
+- "I finished book 1", meaning the first book of the series, is `volume: 1`, `status: finished`. "I started book 2" is `volume: 2`, `status: reading`, with `chapter` and `section` empty.
 - "I'm on page 247" does not mean the whole chapter containing that page is complete. Record the page in the notes, and ask for the last completed chapter if that is necessary to answer a story question safely.
 - If the user says they are partway through a chapter, keep the last completed chapter as the boundary.
 - If the user says they have finished the book, set `status: finished`.
@@ -110,7 +110,7 @@ Before answering a question about the story, a character, a location, a faction,
 6. Do not use external sources for fictional-world information. They commonly contain spoilers and may mix canon with fan interpretation.
 7. If the tool cannot determine chapter boundaries for a book, stop and explain the limitation. Do not fall back to an unrestricted search of the full text.
 8. If the relevant information has not appeared by the checkpoint, say that it has not been established in the material the user has read. Do not hint that something is revealed later.
-9. When referring to evidence, give the book and chapter, as shown in the tool's section headings. Give a physical page only if it is explicitly available and verified for the user's edition.
+9. When referring to evidence, give the volume and chapter, as shown in the tool's section headings. Give a physical page only if it is explicitly available and verified for the user's edition.
 
 If a spoiler boundary prevents an answer, say so plainly without hinting at what lies beyond it.
 

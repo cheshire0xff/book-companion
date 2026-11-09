@@ -34,10 +34,10 @@ def library(tmp_path: Path) -> Path:
     root = tmp_path / "library"
     series = root / "books" / "jane-doe" / "night-saga"
     write(series / "reading-progress.md",
-          "---\nbook: 1\nstatus: reading\nchapter: 12\nupdated: 2026-11-07\n---\n\n"
+          "---\nvolume: 1\nstatus: reading\nchapter: 12\nupdated: 2026-11-07\n---\n\n"
           "# Reading progress\n\n- Current: chapter 13\n")
 
-    first = series / "books" / "01-first-night"
+    first = series / "volumes" / "01-first-night"
     write(first / "metadata.md", "# Book metadata\n\n- Title: First Night\n"
                                  "- Author(s): Jane Doe\n- Series: The Night Saga\n\n"
                                  "## Metadata notes\n\n- Title: not this one\n")
@@ -45,7 +45,7 @@ def library(tmp_path: Path) -> Path:
     write(first / "book.txt", "SECRET TEXT")
     write(first / "book-html" / "OEBPS" / "c1.xhtml", "<p>SECRET</p>")
     (first / "source.epub").write_bytes(b"PK")
-    second = series / "books" / "02-second-night"
+    second = series / "volumes" / "02-second-night"
     write(second / "metadata.md", "- Title: Second Night\n")
     write(second / "reference.md", "# Second Night — Reference\n\n"
                                    "| Name | Fate |\n|---|---|\n| Mira | lives |\n")
@@ -96,20 +96,20 @@ def page(root: Path, url: str, cookie: str | None = None) -> str:
 def test_index_lists_series_and_standalone_books(library: Path) -> None:
     html = page(library, "/")
     assert "The Night Saga" in html and "Jane Doe" in html
-    assert "Book 1 · read through chapter 12 · updated 2026-11-07" in html
+    assert "Volume 1 · read through chapter 12 · updated 2026-11-07" in html
     assert "Lone Star" in html and "finished" in html
     assert f'href="{SERIES}"' in html
 
 
 def test_series_page_links_books_entities_and_marks_spoilers(library: Path) -> None:
     html = page(library, SERIES)
-    assert "Book 1: First Night" in html and "Book 2: Second Night" in html
+    assert "Volume 1: First Night" in html and "Volume 2: Second Night" in html
     assert f'href="{MIRA}"' in html and "Mira Vale" in html
     assert "Black Tower" in html and "no description" in html  # pics only, name from slug
     assert "Current: chapter 13" in html  # the notes below the front matter
     # Book 1 is still being read, so its chapter notes are a spoiler; so is book 2's reference.
     assert html.count('class="pill past"') == 2
-    assert f'<a class="pill" href="{SERIES}books/01-first-night/metadata.md">' in html
+    assert f'<a class="pill" href="{SERIES}volumes/01-first-night/metadata.md">' in html
 
 
 def test_entity_page_shows_images_prompts_and_description(library: Path) -> None:
@@ -129,12 +129,12 @@ def test_images_are_served_with_their_type(library: Path) -> None:
 
 
 def test_notes_past_progress_are_behind_a_warning(library: Path) -> None:
-    reference = page(library, SERIES + "books/02-second-night/reference.md")
-    assert '<details class="spoiler">' in reference and "Book 2 is past" in reference
+    reference = page(library, SERIES + "volumes/02-second-night/reference.md")
+    assert '<details class="spoiler">' in reference and "Volume 2 is past" in reference
     assert "<table>" in reference
-    chapters = page(library, SERIES + "books/01-first-night/chapters.md")
+    chapters = page(library, SERIES + "volumes/01-first-night/chapters.md")
     assert '<details class="spoiler">' in chapters
-    metadata = page(library, SERIES + "books/01-first-night/metadata.md")
+    metadata = page(library, SERIES + "volumes/01-first-night/metadata.md")
     assert '<details class="spoiler">' not in metadata and "First Night" in metadata
     finished = page(library, "/books/jane-doe/standalone/lone-star/chapters.md")
     assert '<details class="spoiler">' not in finished and "Lone Star — Chapter Notes" in finished
@@ -142,17 +142,18 @@ def test_notes_past_progress_are_behind_a_warning(library: Path) -> None:
 
 def test_broken_progress_shows_an_error_and_hides_every_memory_note(library: Path) -> None:
     write(library / "books" / "jane-doe" / "night-saga" / "reading-progress.md",
-          "---\nbook: one\nstatus: reading\n---\n")
+          "---\nvolume: one\nstatus: reading\n---\n")
     html = page(library, SERIES)
     assert "Could not read the reading progress" in html
     assert html.count('class="pill past"') == 2
-    assert '<details class="spoiler">' in page(library, SERIES + "books/01-first-night/chapters.md")
+    chapters = page(library, SERIES + "volumes/01-first-night/chapters.md")
+    assert '<details class="spoiler">' in chapters
 
 
 @pytest.mark.parametrize("url", [
-    SERIES + "books/01-first-night/book.txt",
-    SERIES + "books/01-first-night/source.epub",
-    SERIES + "books/01-first-night/book-html/OEBPS/c1.xhtml",
+    SERIES + "volumes/01-first-night/book.txt",
+    SERIES + "volumes/01-first-night/source.epub",
+    SERIES + "volumes/01-first-night/book-html/OEBPS/c1.xhtml",
     SERIES + "reading-progress.md",
     MIRA + "description.md",
     MIRA + "pics/mira-portrait-v01.prompt.md",

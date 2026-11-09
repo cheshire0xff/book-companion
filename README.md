@@ -55,7 +55,7 @@ After a reading session, tell the agent (`/book-companion:book-companion`) what 
 - `I've finished the book.`
 - `I finished Book Two, chapter 5.` (for books whose chapter numbering restarts in each part; the import tells you when that applies)
 
-Progress is kept per series, in `books/<author>/<series>/reading-progress.md` (a standalone novel has its own in its book folder). The agent records it in the small `---` block at the top: the book you're on (`book`), its `status`, the last completed `chapter`, and `part` when that book's numbering restarts per part. Earlier books count as read, later ones as unread. The rest of the file is free-form notes. The last completed chapter is the normal spoiler boundary. Physical page numbers are useful context, but do not reliably map to EPUB/TXT positions. If you only provide a page number, the agent may ask which chapter you have completed before researching the story.
+Progress is kept per series, in `books/<author>/<series>/reading-progress.md` (a standalone novel has its own in its book folder). The agent records it in the small `---` block at the top: the volume you're on (`volume`), its `status`, the last completed `chapter`, and `part` when that volume's numbering restarts per part. Earlier volumes count as read, later ones as unread. The rest of the file is free-form notes. The last completed chapter is the normal spoiler boundary. Physical page numbers are useful context, but do not reliably map to EPUB/TXT positions. If you only provide a page number, the agent may ask which chapter you have completed before researching the story.
 
 ## Ask about the book
 
@@ -67,7 +67,7 @@ Examples:
 
 The agent should check the reading checkpoint first, use the book text only through that boundary, and distinguish details stated in the book from inference. Do not rely on external wikis for story lore.
 
-The agent searches with `book-search`. Pointed at a series directory, it searches every book in the series up to your recorded story point: earlier books fully, the current book up to your boundary, later books not at all. It never returns text past that, including later chapter titles from a book's contents page. You can use it yourself too:
+The agent searches with `book-search`. Pointed at a series directory, it searches every volume of the series up to your recorded story point: earlier volumes fully, the current volume up to your boundary, later volumes not at all. It never returns text past that, including later chapter titles from a book's contents page. You can use it yourself too:
 
 ```powershell
 book-search search   books/christopher-ruocchio/sun-eater "Valka" --word --count

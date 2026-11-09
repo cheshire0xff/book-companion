@@ -20,7 +20,7 @@ NOTE_FILES = ("metadata.md", "reference.md", "chapters.md", "chapters-condensed.
 SAFE_NOTES = frozenset({"metadata.md"})  # bibliographic facts and the memory log, never a spoiler
 IMAGE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".webp", ".gif"})
 PROMPT_SUFFIX = ".prompt.md"
-NOT_CATEGORIES = frozenset({"books", "entities", "book-html"})
+NOT_CATEGORIES = frozenset({"volumes", "entities", "book-html"})
 
 
 @dataclass
@@ -95,7 +95,7 @@ def scan(root: Path) -> Library:
                 found.extend(_series(book, standalone=True) for book in _subdirs(directory)
                              if (book / PROGRESS_FILE).is_file()
                              or (book / "metadata.md").is_file())
-            elif (directory / PROGRESS_FILE).is_file() or (directory / "books").is_dir():
+            elif (directory / PROGRESS_FILE).is_file() or (directory / "volumes").is_dir():
                 found.append(_series(directory, standalone=False))
     found.sort(key=lambda s: (s.author.casefold(), s.title.casefold()))
     return Library(root, found)
@@ -138,9 +138,9 @@ def _fully_read(number: int | None, progress: Progress | None, standalone: bool)
         return False
     if standalone:
         return progress.status is Status.FINISHED
-    if number is None or progress.book is None:
+    if number is None or progress.volume is None:
         return False
-    return number < progress.book or (number == progress.book
+    return number < progress.volume or (number == progress.volume
                                       and progress.status is Status.FINISHED)
 
 
@@ -161,7 +161,7 @@ def _series(path: Path, standalone: bool) -> Series:
         volumes = [_volume(path, None, progress, standalone=True)]
     else:
         volumes = []
-        for book_dir in _subdirs(path / "books"):
+        for book_dir in _subdirs(path / "volumes"):
             prefix = re.match(r"(\d+)-", book_dir.name)
             number = int(prefix.group(1)) if prefix else None
             volumes.append(_volume(book_dir, number, progress, standalone=False))

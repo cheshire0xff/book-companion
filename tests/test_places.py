@@ -71,14 +71,14 @@ def test_a_chapter_covers_its_nested_sections(flat: Builder) -> None:
 
 
 def test_a_volume_is_the_whole_volume(series: Builder) -> None:
-    target = load_target(Path(series(progress("reading", chapter="1", book="1"))))
+    target = load_target(Path(series(progress("reading", chapter="1", volume="1"))))
     span = resolve(target, Place(volume=2))
     assert span.start == Position(1, 0, 1)
     assert span.end == Position(1, len(target.volumes[1].book.sections), END)
 
 
 def test_series_places_name_their_volume(series: Builder) -> None:
-    target = load_target(Path(series(progress("reading", chapter="1", book="1"))))
+    target = load_target(Path(series(progress("reading", chapter="1", volume="1"))))
     with pytest.raises(BookError, match='e.g. "volume 1 chapter 1"'):
         resolve(target, Place(chapter=1))
     assert resolve(target, Place(chapter=1), volume=1).start == Position(0, 2, 1)
@@ -109,7 +109,7 @@ def test_restarting_numbering_needs_the_part(parts: Builder) -> None:
 def test_every_section_has_a_place_that_finds_it(
         fixture: str, request: pytest.FixtureRequest) -> None:
     build: Builder = request.getfixturevalue(fixture)
-    target = load_target(Path(build(progress("finished", book="2" if fixture == "series"
+    target = load_target(Path(build(progress("finished", volume="2" if fixture == "series"
                                               else ""))))
     for index, volume in enumerate(target.volumes):
         for section in volume.book.sections:

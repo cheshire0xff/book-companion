@@ -48,12 +48,12 @@ OptionalDate = Annotated[date | None, BeforeValidator(_date_or_empty)]
 
 
 class Progress(BaseModel):
-    """The front-matter values: a story point (book, then chapter or section)."""
+    """The front-matter values: a story point (volume, then chapter or section)."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     status: Status
-    book: WholeNumber = None
+    volume: WholeNumber = None
     chapter: WholeNumber = None
     part: WholeNumber = None
     section: WholeNumber = None
@@ -92,6 +92,8 @@ def parse_progress(path: Path) -> Progress:
         if key in values:
             raise BookError(f"{path}:{line_no}: {key!r} is set twice.")
         values[key] = value.strip()
+    if "book" in values:
+        raise BookError(f"{path}: 'book:' is now 'volume:'; rename the key.")
     try:
         return Progress.model_validate(values)
     except ValidationError as error:

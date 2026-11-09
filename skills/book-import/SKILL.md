@@ -32,7 +32,7 @@ The user may simply place an EPUB in `_incoming/epubs/` and ask you to import it
 ## 2. Choose the destination and move the EPUB
 
 1. Check whether the book already exists in the library before creating anything. If it exists, compare the files and metadata. Do not overwrite existing files or create a duplicate without explaining the situation.
-2. If it is a series book, use `books/<author-slug>/<series-slug>/books/<volume>-<book-slug>/`. If it is standalone, use the standalone layout in `library.md`.
+2. If it is a series book, use `books/<author-slug>/<series-slug>/volumes/<volume>-<book-slug>/`. If it is standalone, use the standalone layout in `library.md`.
 3. If series membership or volume order remains uncertain after the lookup and user fallback in step 1, do not choose a definitive series directory. Keep the EPUB in `_incoming/epubs/` until the user clarifies how to file it.
 4. Preserve the original EPUB byte-for-byte. Move the incoming EPUB into the destination as `source.epub`; do not make a second copy, and do not leave one in `_incoming/epubs/`. Verify the moved file exists and has a plausible size. If a `source.epub` already exists, do not overwrite it; investigate the duplicate or edition and ask if needed.
 
@@ -81,9 +81,9 @@ Create `metadata.md` with known information and label unknown fields explicitly:
 - Record discrepancies, uncertain fields, source URLs and dates checked, and how each field was resolved.
 ```
 
-Reading progress lives in one `reading-progress.md` per series, in the series directory; a standalone novel has its own in its book directory. Do not create one inside a series book's directory.
+Reading progress lives in one `reading-progress.md` per series, in the series directory; a standalone novel has its own in its book directory. Do not create one inside a volume's directory.
 
-- If the series (or standalone book) has no `reading-progress.md` yet, create it from the template in `spoiler-rules.md` with `book: 1` (omitted for a standalone), `status: not started`, the other numbers empty, and `updated` set to today. If the user says they have already read earlier books, record that instead.
+- If the series (or standalone book) has no `reading-progress.md` yet, create it from the template in `spoiler-rules.md` with `volume: 1` (omitted for a standalone), `status: not started`, the other numbers empty, and `updated` set to today. If the user says they have already read earlier books, record that instead.
 - If it already exists, do not change it. Importing a later volume never advances or resets progress.
 
 Do not assume that importing a book means the user has read any of it.
@@ -97,7 +97,7 @@ The import is complete only when all of these hold:
 - `source.epub` exists in the final book directory and `_incoming/epubs/` holds no extra copy;
 - `book.txt` exists, is non-empty, begins with plausible book content, and contains later chapter headings or other evidence that the conversion did not truncate the book (check headings only; do not read story content);
 - `book-html/` exists and contains at least one non-empty HTML file;
-- `book-search check <series-or-standalone-directory>` succeeds. It prints only counts, never titles or text, and also validates `reading-progress.md`. Record any warning in `metadata.md`. If it reports that chapter numbering restarts in each part, add a note to `reading-progress.md` and tell the user that progress in that book needs the part (for example "Book Two, chapter 5");
+- `book-search check <series-or-standalone-directory>` succeeds. It prints only counts, never titles or text, and also validates `reading-progress.md`. Record any warning in `metadata.md`. If it reports that chapter numbering restarts in each part, add a note to `reading-progress.md` and tell the user that progress in that volume needs the part (for example "Book Two, chapter 5");
 - `metadata.md` is written, and the series (or standalone book) has a valid `reading-progress.md`.
 
 If conversion fails, keep `source.epub` in the final directory, leave the import marked incomplete, report the error, and do not move or delete the EPUB as a cleanup step.

@@ -40,7 +40,7 @@ concepts:
             Every chapter is also a section. Use a section for a place without
             a chapter number; 'chapters' lists the numbers.
   volume    In a series directory, the number from the volume folder's prefix
-            (01-empire-of-silence is volume 1). Every place names it, except a
+            (volumes/01-empire-of-silence is volume 1). Every place names it, except a
             --to without one, which is in the volume of --from. In one volume's
             directory, or a standalone book, leave it out.
   range     --from PLACE is where to begin (default: the start). --to PLACE is
@@ -49,7 +49,7 @@ concepts:
             that story point.
   progress  One reading-progress.md per series (in the series directory), or
             per standalone book. It records a story point: the volume being
-            read and its last completed chapter or section. Earlier volumes
+            read (volume:) and its last completed chapter or section. Earlier volumes
             count as read, later ones as unread.
   boundary  Text past the reading progress, through --to, --all or a place to
             read, needs --allow-spoilers, which is only for when the user
@@ -69,7 +69,7 @@ def positive_int(value: str) -> int:
 
 def add_target(p: argparse.ArgumentParser) -> None:
     p.add_argument("target", type=Path,
-                   help="a series directory (with books/), one volume directory inside it, "
+                   help="a series directory (with volumes/), one volume directory inside it, "
                         "or a standalone book directory")
 
 

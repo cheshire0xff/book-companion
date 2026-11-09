@@ -48,8 +48,8 @@ def describe_progress(series: Series) -> str:
     if progress is None:
         return "Reading progress unavailable"
     parts = []
-    if not series.standalone and progress.book is not None:
-        parts.append(f"Book {progress.book}")
+    if not series.standalone and progress.volume is not None:
+        parts.append(f"Volume {progress.volume}")
     if progress.status is Status.READING and progress.chapter is not None:
         part = f"part {progress.part}, " if progress.part is not None else ""
         parts.append(f"read through {part}chapter {progress.chapter}")
@@ -147,7 +147,7 @@ def note_page(library: Library, series: Series, volume: Volume | None, note: Pat
     content = f'<div class="prose">{render_markdown(_read(note))}</div>'
     if volume is not None and is_spoiler(volume, note):
         where = ("This book" if series.standalone or volume.number is None
-                 else f"Book {volume.number}")
+                 else f"Volume {volume.number}")
         content = (f'<details class="spoiler"><summary>⚠ Spoilers: {escape(where)} is past your '
                    f"reading progress ({escape(describe_progress(series))}). Show anyway"
                    f"</summary>{content}</details>")
@@ -168,7 +168,8 @@ def error_page(status: int, message: str) -> Page:
 
 
 def _books(library: Library, series: Series) -> str:
-    out = ['<h2>Books</h2><ul class="books">']
+    heading = "Book" if series.standalone else "Volumes"
+    out = [f'<h2>{heading}</h2><ul class="books">']
     for volume in series.volumes:
         links = []
         for note in volume.notes:
@@ -225,7 +226,7 @@ def _thumb(library: Library, entity: Entity, css: str = "thumb") -> str:
 def _volume_label(series: Series, volume: Volume) -> str:
     if series.standalone or volume.number is None:
         return volume.title
-    return f"Book {volume.number}: {volume.title}"
+    return f"Volume {volume.number}: {volume.title}"
 
 
 def _without_title(text: str) -> str:

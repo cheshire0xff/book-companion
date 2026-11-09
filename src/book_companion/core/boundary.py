@@ -32,18 +32,18 @@ def recorded_end(target: Target) -> Position | None:
     progress = target.progress()
     path = target.progress_path
     if not target.is_series:
-        if progress.book is not None:
-            raise BookError(f"{path}: 'book' is only used in a series' reading-progress.md.")
+        if progress.volume is not None:
+            raise BookError(f"{path}: 'volume' is only used in a series' reading-progress.md.")
         covered = [_completed(target.volumes[0].book, progress)]
     else:
-        if progress.book is None:
-            raise BookError(f"{path}: set 'book' to the volume number being read.")
+        if progress.volume is None:
+            raise BookError(f"{path}: set 'volume' to the number of the volume being read.")
         highest = max(v.series_number for v in target.volumes)
-        if progress.book > highest + 1:
-            raise BookError(f"{path}: volume {progress.book} is past the imported volumes "
+        if progress.volume > highest + 1:
+            raise BookError(f"{path}: volume {progress.volume} is past the imported volumes "
                             f"(the highest is {highest}); check the number.")
-        covered = [None if v.series_number < progress.book
-                   else _completed(v.book, progress) if v.series_number == progress.book
+        covered = [None if v.series_number < progress.volume
+                   else _completed(v.book, progress) if v.series_number == progress.volume
                    else 0 for v in target.volumes]
     end = None
     for index, (volume, last) in enumerate(zip(target.volumes, covered, strict=True)):

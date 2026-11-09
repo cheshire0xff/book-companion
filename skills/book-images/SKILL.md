@@ -73,8 +73,8 @@ The sidecar should contain:
 # Image prompt: <short description>
 
 - Entity:
-- Depicts: <the story point shown, e.g. book 1, chapter 46; "current reading progress" if not earlier>
-- Reading progress at preparation: <copied from reading-progress.md, e.g. book 1, chapter 72 (status: reading, updated 2026-11-07)>
+- Depicts: <the story point shown, e.g. volume 1 chapter 46; "current reading progress" if not earlier>
+- Reading progress at preparation: <copied from reading-progress.md, e.g. volume 1, chapter 72 (status: reading, updated 2026-11-07)>
 - Prepared: <YYYY-MM-DD>
 - Prompt model: <the model that prepared the prompt, or unknown>
 - Status: prompt prepared; image not yet generated
@@ -101,7 +101,7 @@ The sidecar should contain:
 
 List under **Source-backed details** only the details the prompt uses. Other findings belong in the entity's profile (see "Entity profile" in section 1), and a notable omission in **Notes**.
 
-Copy the reading progress exactly as the front matter gives it: `book` (in a series), then `chapter` (with `part` when set) or `section`, plus `status` and `updated`. This is the boundary every detail in the sidecar and prompt was researched within. It stays as recorded even if the user reads further before generating or importing the image, because the image shows only what was known when the prompt was prepared.
+Copy the reading progress exactly as the front matter gives it: `volume` (in a series), then `chapter` (with `part` when set) or `section`, plus `status` and `updated`. This is the boundary every detail in the sidecar and prompt was researched within. It stays as recorded even if the user reads further before generating or importing the image, because the image shows only what was known when the prompt was prepared.
 
 Write **Prompt model** only when you know for certain which model you are, with your reasoning effort if you know it; otherwise `unknown`. **Image model** and **Cost** describe the generated image, and you cannot see either: record them as the user gives them, at import or in a later conversation (a cost may be dollars, credits, or none for an image included in a subscription). Never guess the image model from the image or from what ChatGPT usually uses.
 
