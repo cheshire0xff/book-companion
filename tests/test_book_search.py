@@ -67,7 +67,6 @@ def test_progress_front_matter_is_read(tmp_path: Path) -> None:
     ("---\nstatus: reading\nstatus: finished\n---\n", "set twice"),
     ("---\nstatus: reading\nupdated: yesterday\n---\n", "YYYY-MM-DD"),
     ("---\nvolume: two\nstatus: reading\n---\n", "whole number"),
-    ("---\nbook: 2\nstatus: reading\n---\n", "'book:' is now 'volume:'"),
 ])
 def test_progress_front_matter_is_strict(tmp_path: Path, text: str, message: str) -> None:
     path = tmp_path / "reading-progress.md"
@@ -579,14 +578,3 @@ def test_read_across_volumes(series: Builder, capsys: Capture) -> None:
               "--from", "volume 1 chapter 5", "--to", "volume 2 part 1 chapter 1")[1]
     assert "final scene" in out and "part one page" in out and "alpha" in out
     assert "beta" not in out and "Quiet" not in out
-
-
-# -- libraries from before volumes/ ---------------------------------------------
-
-def test_a_series_with_books_folder_says_to_rename_it(tmp_path: Path, capsys: Capture) -> None:
-    root = tmp_path / "series"
-    make_book(root / "books" / "01-flat", "Flat Book", FLAT_FILES, FLAT_TOC)
-    (root / "reading-progress.md").write_text(progress("finished", volume="1"), encoding="utf-8")
-    for target in (root, root / "books" / "01-flat"):
-        code, _, err = run(capsys, "check", str(target))
-        assert code == 2 and "Rename that folder to volumes/" in err

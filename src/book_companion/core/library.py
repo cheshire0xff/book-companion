@@ -78,10 +78,6 @@ def load_target(path: Path) -> Target:
     # abspath, not resolve(): it keeps symlinked folders and mapped drives as given.
     path = Path(os.path.abspath(path))
     prefix = re.match(r"(\d+)-", path.name)
-    for series_dir in (path, path.parent.parent):
-        if _old_layout(series_dir):
-            raise BookError(f"{series_dir} keeps its volumes in books/. Rename that folder to "
-                            "volumes/, and 'book:' to 'volume:' in reading-progress.md.")
     if (path / "book-html").is_dir():
         if path.parent.name == "volumes" and prefix:  # one volume inside a series
             series_dir = path.parent.parent
@@ -93,14 +89,6 @@ def load_target(path: Path) -> Target:
         return Target(path.name, _load_series(path), True, path / "reading-progress.md")
     raise BookError(f"{path} is neither a book directory (with book-html/) "
                     "nor a series directory (with volumes/).")
-
-
-def _old_layout(series_dir: Path) -> bool:
-    """A series from before volumes/: its numbered volume folders are in books/."""
-    old = series_dir / "books"
-    return (not (series_dir / "volumes").is_dir() and old.is_dir()
-            and any(re.match(r"\d+-", d.name) and (d / "book-html").is_dir()
-                    for d in old.iterdir() if d.is_dir()))
 
 
 def _load_series(series_dir: Path) -> list[Volume]:
