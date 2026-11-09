@@ -133,7 +133,10 @@ def section_place(target: Target, volume: Volume, section: Section | None,
     if section is None:
         return Place(volume=number, paragraph=paragraph)
     if section.chapter is not None:
-        for part in dict.fromkeys((None, section.part)):
+        # where numbering restarts, every chapter is named with its part, as readers do
+        parts = ((section.part, None) if volume.book.numbering_restarts
+                 else (None, section.part))
+        for part in dict.fromkeys(parts):
             try:
                 if find_chapter(volume.book, section.chapter, part) is section:
                     return Place(volume=number, part=part, chapter=section.chapter,

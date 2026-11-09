@@ -222,7 +222,7 @@ def _structure_report(volume: Volume, progress: str | None) -> list[str]:
     numbers = [chapter for _, chapter in keys]
     duplicates = sorted({describe_chapter(n, p) for p, n in keys if keys.count((p, n)) > 1})
     parts = sorted({p for p, _ in keys if p is not None})
-    restarts = len(set(numbers)) < len(numbers) and not duplicates
+    restarts = book.numbering_restarts
     gaps: list[str] = []
     groups: list[int | None] = list(parts) or [None]
     for part in groups:

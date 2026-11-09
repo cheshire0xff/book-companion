@@ -67,6 +67,13 @@ class Book:
     def has_parts(self) -> bool:
         return any(s.part is not None and s.chapter is not None for s in self.toc)
 
+    @property
+    def numbering_restarts(self) -> bool:
+        """Chapter numbering restarts in each part, so a chapter is named with its part."""
+        keys = [(s.part, s.chapter) for s in self.sections if s.chapter is not None]
+        numbers = [chapter for _, chapter in keys]
+        return len(set(numbers)) < len(numbers) and len(set(keys)) == len(keys)
+
     def section(self, number: int) -> Section:
         if not 1 <= number <= len(self.sections):
             raise BookError(f"Section {number} does not exist "

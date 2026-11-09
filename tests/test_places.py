@@ -17,7 +17,7 @@ from book_companion.core.places import (
     resolve,
     section_place,
 )
-from helpers import Builder, progress
+from helpers import Builder, Toc, make_book, progress
 
 
 @pytest.mark.parametrize("text", [
@@ -117,6 +117,18 @@ def test_every_section_has_a_place_that_finds_it(
             assert resolve(target, parse_place(str(place))).start == Position(
                 index, section.number, 1)
             assert str(place) in location(target, volume, section)
+
+
+def test_restarting_numbering_names_every_chapter_with_its_part(tmp_path: Path) -> None:
+    toc: Toc = [("Part One", "p1.xhtml", [(f"Chapter {n}", f"a{n}.xhtml", []) for n in (1, 2, 3)]),
+                ("Part Two", "p2.xhtml", [(f"Chapter {n}", f"b{n}.xhtml", []) for n in (1, 2)])]
+    files = [(src, "<p>text</p>") for _, top, children in toc
+             for src in [top] + [child for _, child, _ in children]]
+    book = make_book(tmp_path / "restart", "Restart", files, toc, progress("finished"))
+    target = load_target(book)
+    volume = target.volumes[0]
+    chapter_three = volume.book.sections[3]  # only part one has a chapter 3
+    assert str(section_place(target, volume, chapter_three)) == "part 1 chapter 3"
 
 
 def test_places_use_a_chapter_where_they_can(parts: Builder) -> None:
