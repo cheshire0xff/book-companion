@@ -1,6 +1,6 @@
 ---
 name: book-images
-description: "Use when preparing a spoiler-safe image-generation prompt for a character, location, faction, object or scene in the user's book library, or when importing a generated image from _incoming/images/ into the library. Do not use for developing or modifying the Book Companion application or its scripts."
+description: "Use when preparing a spoiler-safe image-generation prompt for a character, location, faction, object or scene in the user's book library, when importing a generated image from _incoming/images/ into the library, or when recording which model made an image and what it cost. Do not use for developing or modifying the Book Companion application or its scripts."
 argument-hint: "<entity and image type, or 'import'>"
 ---
 
@@ -76,9 +76,12 @@ The sidecar should contain:
 - Depicts: <the story point shown, e.g. book 1, chapter 46; "current reading progress" if not earlier>
 - Reading progress at preparation: <copied from reading-progress.md, e.g. book 1, chapter 72 (status: reading, updated 2026-11-07)>
 - Prepared: <YYYY-MM-DD>
+- Prompt model: <the model that prepared the prompt, or unknown>
 - Status: prompt prepared; image not yet generated
 - Original image filename: not supplied yet
 - Imported: not yet
+- Image model: not supplied yet
+- Cost: not supplied
 
 ## Source-backed details
 - Detail the prompt uses — [Book title, chapter N]
@@ -100,6 +103,8 @@ List under **Source-backed details** only the details the prompt uses. Other fin
 
 Copy the reading progress exactly as the front matter gives it: `book` (in a series), then `chapter` (with `part` when set) or `section`, plus `status` and `updated`. This is the boundary every detail in the sidecar and prompt was researched within. It stays as recorded even if the user reads further before generating or importing the image, because the image shows only what was known when the prompt was prepared.
 
+Write **Prompt model** only when you know for certain which model you are, with your reasoning effort if you know it; otherwise `unknown`. **Image model** and **Cost** describe the generated image, and you cannot see either: record them as the user gives them, at import or in a later conversation (a cost may be dollars, credits, or none for an image included in a subscription). Never guess the image model from the image or from what ChatGPT usually uses.
+
 By default, the user pastes the prepared prompt unchanged. If they report the image without mentioning any change ("done"), record the prompt as used as prepared. If they say they changed it, record the final prompt they give you or describe what they changed. If they changed it but cannot give the final wording, keep the prepared prompt and mark the final prompt as unknown. Ask only when it is genuinely unclear, not as a routine confirmation.
 
 When handing over the prompt, present it paste-ready, say where the sidecar was saved (and the profile, if you created or added to one), and state:
@@ -116,7 +121,7 @@ Do not imply that ChatGPT sends the image directly into the workspace, and be ex
 2. Match exact base filenames to prompt sidecars first. If there is no exact match, and there is exactly one image in `_incoming/images/` whose descriptive filename reasonably matches exactly one pending prompt/entity (for example, by naming the character, subject, or visible traits), treat it as the intended image without asking for confirmation. If the filename is generic, no prompt is a reasonable match, or multiple prompts could match, ask the user. Do not use appearance alone to resolve an ambiguous association.
 3. Move it into the appropriate entity's `pics/` directory, copying and verifying the destination before removing the staged file so the staging directory does not accumulate already-imported images. Never delete the only copy before verifying the destination.
 4. Use the prepared descriptive, versioned base filename for the library copy, retaining the source image's file extension. Never overwrite an existing image. If the intended destination already exists, choose a new version suffix and update the prompt sidecar accordingly.
-5. Keep the corresponding prompt sidecar beside the image. Update its status from `prompt prepared; image not yet generated` to `image imported; prompt used as prepared` (or `image imported; prompt changed by user`, following the rules in section 2), and record the original staged filename in its `Original image filename` field and today's date in `Imported`. Leave `Reading progress at preparation` as it is.
+5. Keep the corresponding prompt sidecar beside the image. Update its status from `prompt prepared; image not yet generated` to `image imported; prompt used as prepared` (or `image imported; prompt changed by user`, following the rules in section 2), and record the original staged filename in its `Original image filename` field and today's date in `Imported`. Leave `Reading progress at preparation` as it is. If the user mentions the image model or cost, record them too (see section 2).
 6. If there is no prompt sidecar, create one only from information actually available. Mark unknowns as unknown (including `Reading progress at preparation`, unless the user tells you); do not fabricate the exact prompt.
 7. If the entity still has no `description.md` and the sidecar lists source-backed details, create the profile from the sidecar's source-backed details and inferences, following "Entity profile" in section 1. Without such details, leave it missing; never write a profile from the image.
 8. If the user asks for a new version, preserve earlier versions.

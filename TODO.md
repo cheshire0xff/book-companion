@@ -8,7 +8,7 @@
     - find pending prompts when importing from `_incoming/images/`;
     - flag images prepared past a given story point (spoiler check);
     - validate sidecars.
-  - Move the sidecar metadata into a strict front-matter block first, like `reading-progress.md`, with typed keys (book, chapter, part, section, status, prepared, imported, original filename). The tool then validates typed fields with pydantic instead of parsing the current prose bullets.
+  - Move the sidecar metadata into a strict front-matter block first, like `reading-progress.md`, with typed keys (book, chapter, part, section, status, prepared, imported, original filename, prompt model, image model, cost). The tool then validates typed fields with pydantic instead of parsing the current prose bullets.
   - Update the `book-images` skill to match.
 - [x] Revise the `book-memory-extraction` skill.
   - Done 2026-11-08: back to v1 (the skill before commit 5bdac05), which says what the memory must capture and leaves the how to the agent.

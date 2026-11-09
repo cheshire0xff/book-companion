@@ -1,6 +1,6 @@
 ---
 name: book-memory-extraction
-description: "Use when the user has finished a book in their library and wants its book memory, a recap of a finished book, or to condense an existing book memory. Produces compact, spoiler-complete notes (chapters.md and reference.md in the book's folder, and chapters-condensed.md on request) for accurately recalling the story later, especially when continuing a series. Not for books still being read. Do not use for developing or modifying the Book Companion application or its scripts."
+description: "Use when the user has finished a book in their library and wants its book memory, a recap of a finished book, to condense an existing book memory, or to log a book memory's model and cost or the user's own review of it. Produces compact, spoiler-complete notes (chapters.md and reference.md in the book's folder, and chapters-condensed.md on request) for accurately recalling the story later, especially when continuing a series. Not for books still being read. Do not use for developing or modifying the Book Companion application or its scripts."
 argument-hint: "[book directory]"
 user-invocable: true
 ---
@@ -35,7 +35,7 @@ Create a compact, information-dense reference that preserves what a reader may n
 7. **Inventory consequential specifics.** Note important objects, who holds them, their condition, and when they change hands. Include other concrete details (names, dates, numbers, routes, titles, and terminology) that may affect later books.
 8. **Write the end state.** State where significant characters stand, what changed, who knows what, which plans or conflicts remain active, and which major mysteries are still unresolved.
 9. **Compress and audit.** Remove repetition and ornamental prose without deleting potentially consequential facts. Check names, aliases, sequence, causal links, numbers, and end states against the source. Mark inference and uncertainty; never convert speculation into fact or resolve an open mystery.
-10. **Verify the deliverable.** Confirm both files exist, are non-empty, and have the expected sections. Check `chapters.md` against `book-search chapters`: every story section, unnumbered ones included, has exactly one note, in reading order, naming the part where chapter numbering restarts. Report their paths and any source limitations.
+10. **Verify the deliverable.** Confirm both files exist, are non-empty, and have the expected sections. Check `chapters.md` against `book-search chapters`: every story section, unnumbered ones included, has exactly one note, in reading order, naming the part where chapter numbering restarts. Add the run to the memory log (see "Other tasks"), then report the files' paths and any source limitations.
 
 ## The two files
 
@@ -56,16 +56,16 @@ In a series, each book's files stand on their own: a returning character, place,
 
 ## Length, style, and accuracy
 
-- There is no length target: coverage comes first. The user may ask for a condensed version later (see "Condensing").
+- There is no length target: coverage comes first. The user may ask for a condensed version later (see "Other tasks").
 - Prefer precise factual notes over polished prose. Compress wording, not coverage.
 - Use original wording. Avoid reproducing extended passages from the book; quote only short, story-significant wording.
 - Clearly distinguish established facts from a character's claim, belief, reasonable inference, or unresolved question.
 - Preserve uncertainty: do not infer motives, relationships, rules, or outcomes the text leaves ambiguous.
 - For a series, retain details that could matter in later installments, even if they seem minor in this volume.
 
-## Condensing
+## Other tasks
 
-When the user asks to condense a book memory, write `chapters-condensed.md` next to `chapters.md`.
+These files are in this skill's folder, next to this one. Read one when its task comes up:
 
-- Work from `chapters.md`, not from the book, keeping its headings and order. Leave `chapters.md` and `reference.md` in place. If `chapters-condensed.md` already exists, ask before replacing it.
-- When condensing turns up an inconsistency, check it against the text with `book-search` and fix it in `chapters.md` or `reference.md` as well, so the files agree. Report what you changed.
+- `condensing.md`: the user asks to condense a book memory.
+- `memory-log.md`: after any run that writes or changes the memory files, and when the user tells you a run's model or cost, or that they reviewed or edited the memory themselves.

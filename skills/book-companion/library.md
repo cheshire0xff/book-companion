@@ -37,7 +37,7 @@ The library root is the folder the user works in: the one that holds `books/` an
             │       ├── source.epub
             │       ├── book.txt               # plain-text copy
             │       ├── book-html/             # converted XHTML; book-search reads text and contents from it
-            │       ├── metadata.md
+            │       ├── metadata.md            # bibliographic facts; the book memory's log (runs, model, cost, reviews)
             │       ├── chapters.md            # book memory, only after the user finishes: chapter notes
             │       ├── chapters-condensed.md  # optional, on request: condensed chapter notes
             │       └── reference.md           # book memory: structure, cast, world, end state

@@ -89,7 +89,7 @@ Image generation is manual; the Go subscription is not connected to the OpenAI A
 4. Download the image into `_incoming/images/` and keep ChatGPT's original filename.
 5. Ask the agent to import it: **`/book-companion:book-images Import the new image.`**
 
-The agent matches the filename to the prepared prompt sidecar, moves or renames the image to the prepared versioned filename in the entity's `pics/` folder, and records the original filename in the prompt sidecar metadata. If there is one staged image with a descriptive filename that uniquely matches one pending prompt, the agent can associate it without asking for confirmation. If the filename or prompt association is ambiguous, the agent will ask. ChatGPT cannot send the image directly into this local folder, so the download-and-save step is required.
+The agent matches the filename to the prepared prompt sidecar, moves or renames the image to the prepared versioned filename in the entity's `pics/` folder, and records the original filename in the prompt sidecar metadata, along with the image model and cost if you mention them (now or later). If there is one staged image with a descriptive filename that uniquely matches one pending prompt, the agent can associate it without asking for confirmation. If the filename or prompt association is ambiguous, the agent will ask. ChatGPT cannot send the image directly into this local folder, so the download-and-save step is required.
 
 There is no required number of images per character or location. Create images when they are useful or requested.
 
@@ -101,6 +101,8 @@ When you finish a book, say so and ask for its memory, for example: **`/book-com
 - `reference.md`: structure and chronology, characters, world, open threads, and the end state.
 
 They are spoiler-complete notes for recalling the book later, for example before you start the next volume. They are long; for a shorter version, ask to condense it: **`/book-companion:book-memory-extraction Condense the Empire of Silence memory.`** That writes `chapters-condensed.md` from `chapters.md` and keeps the full files.
+
+The book's `metadata.md` ends with a short log of its memory: each run adds a dated entry with the files and the model. The agent can't see what a run cost, so tell it afterwards, for example **`/book-companion:book-memory-extraction The Empire of Silence memory cost $4.20.`**, and it fills it in. You can also note your own work there, such as having read the files through or fixed something by hand, by telling the agent or by editing the log yourself.
 
 There is no memory for a book you haven't finished. While you are reading, questions and recaps are answered from the text up to your progress.
 
@@ -129,7 +131,7 @@ book-companion/
 │   ├── book-companion/         # SKILL.md + shared library.md and spoiler-rules.md
 │   ├── book-import/
 │   ├── book-images/
-│   └── book-memory-extraction/
+│   └── book-memory-extraction/ # SKILL.md + condensing.md and memory-log.md
 ├── pyproject.toml, uv.lock     # uv project; provides the `book-search`, `book-convert` and `book-view` commands
 ├── src/book_companion/
 │   ├── core/                   # book structure, reading progress, spoiler boundary
