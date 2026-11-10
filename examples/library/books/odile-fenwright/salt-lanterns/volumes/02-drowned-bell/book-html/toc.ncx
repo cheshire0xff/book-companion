@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='utf-8'?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1" xml:lang="eng">
+  <head>
+    <meta name="dtb:uid" content="c795c478-6bc5-414a-9150-e245b65b9a90"/>
+    <meta name="dtb:depth" content="2"/>
+    <meta name="dtb:generator" content="calibre (9.18.0)"/>
+    <meta name="dtb:totalPageCount" content="0"/>
+    <meta name="dtb:maxPageNumber" content="0"/>
+  </head>
+  <docTitle>
+    <text>The Drowned Bell</text>
+  </docTitle>
+  <navMap>
+    <navPoint id="n1" playOrder="1" class="chapter">
+      <navLabel>
+        <text>Contents</text>
+      </navLabel>
+      <content src="OEBPS/text/contents.xhtml"/>
+    </navPoint>
+    <navPoint id="n2" playOrder="2" class="chapter">
+      <navLabel>
+        <text>Chapter 1: The Morning After</text>
+      </navLabel>
+      <content src="OEBPS/text/part01.xhtml"/>
+    </navPoint>
+    <navPoint id="n3" playOrder="3" class="chapter">
+      <navLabel>
+        <text>Chapter 2: The Harbormaster</text>
+      </navLabel>
+      <content src="OEBPS/text/part02.xhtml"/>
+    </navPoint>
+    <navPoint id="n4" playOrder="4" class="chapter">
+      <navLabel>
+        <text>Chapter 3: Below the Wall</text>
+      </navLabel>
+      <content src="OEBPS/text/part03.xhtml"/>
+    </navPoint>
+    <navPoint id="n5" playOrder="5" class="chapter">
+      <navLabel>
+        <text>Chapter 4: The Line</text>
+      </navLabel>
+      <content src="OEBPS/text/part04.xhtml"/>
+    </navPoint>
+    <navPoint id="n6" playOrder="6" class="chapter">
+      <navLabel>
+        <text>Chapter 5: The Bell-Ringer</text>
+      </navLabel>
+      <content src="OEBPS/text/part05.xhtml"/>
+    </navPoint>
+    <navPoint id="n7" playOrder="7" class="chapter">
+      <navLabel>
+        <text>Chapter 6: The Mother Lamp</text>
+      </navLabel>
+      <content src="OEBPS/text/part06.xhtml"/>
+    </navPoint>
+    <navPoint id="n8" playOrder="8" class="chapter">
+      <navLabel>
+        <text>Epilogue</text>
+      </navLabel>
+      <content src="OEBPS/text/part07.xhtml"/>
+    </navPoint>
+  </navMap>
+</ncx>

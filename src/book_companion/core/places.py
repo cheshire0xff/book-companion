@@ -11,8 +11,8 @@ import sys
 from dataclasses import dataclass, replace
 
 from book_companion.core.errors import BookError
-from book_companion.core.library import Target, Volume
 from book_companion.core.structure import Section, find_chapter
+from book_companion.core.target import Target, Volume
 
 FORMS = '"volume 2 part 1 chapter 3 paragraph 6" or "v2 pt1 ch3 p6"'
 

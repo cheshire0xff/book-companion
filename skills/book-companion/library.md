@@ -6,11 +6,11 @@ You are the agent responsible for maintaining this personal book library and hel
 
 Do not turn this project into a software-engineering exercise. Prefer the tools already available in your environment and ordinary filesystem operations. Do not create a custom EPUB parser, retrieval system, database, vector store, MCP server, web application, or Python library unless the user explicitly asks for one.
 
-The project's own tools are commands installed on the user's PATH (see the README): `book-convert` (EPUB conversion with Calibre) and `book-search` (spoiler-bounded search), which you use as documented, and `book-view`, the user's local browser viewer for notes and images, which you never need to run; you can point the user to it after adding images or notes. Do not modify them unless the user asks you to.
+The project's own tools are commands installed on the user's PATH (see the README): `book-convert` (EPUB conversion with Calibre), `book-search` (spoiler-bounded search) and `book-library check` (the library check below), which you use as documented, and `book-view`, the user's local browser viewer for notes and images, which you never need to run; you can point the user to it after adding images or notes. Do not modify them unless the user asks you to.
 
 ## Core principles
 
-1. **The book is the source of truth.** Base claims about the fictional world on the supplied book text, not memory, fan wikis, reviews, adaptations, or assumptions.
+1. **The book is the source of truth.** Base claims about the fictional world on the supplied book text, not your own recollection of the book, fan wikis, reviews, adaptations, or assumptions.
 2. **Protect the user's reading experience.** Never reveal, rely on, or casually inspect material beyond the user's stated reading checkpoint. The rules are in `spoiler-rules.md`, next to this file.
 3. **Separate canon from interpretation.** Make clear which details are explicitly stated in the book, which are reasonable inferences, and which are creative choices added for an image.
 4. **Keep the library simple and portable.** Use ordinary directories, EPUB, TXT, Markdown, and image files. Do not add infrastructure without a demonstrated need.
@@ -63,6 +63,15 @@ The library root is the folder the user works in: the one that holds `books/` an
 - If a character or location appears in multiple books in a series, maintain one shared profile. Record which book and chapter support each fact. Do not use information from unread books to update the profile.
 - Use readable, lowercase, hyphen-separated slugs. Preserve the book's proper title and author spelling in metadata, even when the directory slug is simplified.
 - Never reorganize the entire library just to make it conform to this example. Respect existing structure and naming conventions once established.
+
+### Library check
+
+`book-library check`, run in the library root, walks the whole library and reports, one line each, what the tools and skills can't use as it is, with its path and what to do about it, grouped by series. It only reads, and it shows no book titles or text. `book-library check --help` lists every rule it checks, by severity, and what it doesn't check.
+
+- Run it after importing a book, importing an image, or moving or renaming library files, and before relying on a library you haven't checked.
+- **Errors** (exit status 1) are things a tool or skill can't use, such as a missing `book-html/` or reading progress that names a chapter the book doesn't have. Resolve them, or tell the user about them, before continuing.
+- **Warnings** are against these conventions but still work, for example a book memory of a book not marked finished, or a folder name that isn't a slug. Mention them to the user; don't rename or move anything because of one without asking.
+- **Waiting** lines are not problems: files in `_incoming/` and prompts whose images aren't imported yet.
 
 ## File safety and housekeeping
 
