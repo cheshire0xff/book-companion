@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from book_companion.library.check import check_library
-from book_companion.library.findings import Code
+from book_companion.library.findings import Code, relative
 from book_companion.search.cli import main as search
 from helpers import Capture
 
@@ -21,8 +21,13 @@ def run(capsys: Capture, *argv: str) -> tuple[int, str, str]:
 
 
 def test_the_example_library_checks_clean() -> None:
-    findings = check_library(EXAMPLE).findings
-    assert [finding.code for finding in findings] == [Code.PENDING_PROMPT] * 2
+    """No errors or warnings; one image waits to be imported for its prepared prompt."""
+    findings = {(f.code, relative(EXAMPLE, f.path)) for f in check_library(EXAMPLE).findings}
+    assert findings == {
+        (Code.PENDING_PROMPT, "books/odile-fenwright/salt-lanterns/locations/tidewatch/pics/"
+                              "tidewatch-dusk-v01.prompt.md"),
+        (Code.INCOMING, "_incoming/images/Fogbound Lighthouse Breakwater.jpg"),
+    }
 
 
 def test_the_example_series_structure(capsys: Capture) -> None:

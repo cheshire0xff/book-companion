@@ -5,11 +5,11 @@
 - Reading progress at preparation: volume 2, chapter 3 (status: reading, updated 2026-11-10)
 - Prepared: 2026-11-10
 - Prompt model: Claude Opus 5.5
-- Status: prompt prepared; image not yet generated
-- Original image filename: not supplied yet
-- Imported: not yet
-- Image model: not supplied yet
-- Cost: not supplied
+- Status: image imported; prompt used as prepared
+- Original image filename: Fogbound Lampkeeper by the Sea.png
+- Imported: 2026-11-10
+- Image model: ChatGPT Images 2.6 (ChatGPT Go plan); inferred, not read from the file: the image's C2PA metadata says only "ChatGPT / gpt-image", and it was created 2026-11-10 01:38 UTC, after Images 2.6 rolled out on 2026-11-04
+- Cost: none beyond the ChatGPT Go subscription
 
 ## Source-backed details
 - Sixteen, short and wiry, copper hair cut close to her skull — [The Tidewatch, part 1 chapter 1]
@@ -31,3 +31,5 @@
 
 ## Notes
 - No eye colour, face or skin tone is given in the book through volume 2, chapter 3; those are creative choices.
+- The image shows the burn scar on her left wrist rather than the back of her hand.
+- At the user's request, imported as a JPEG (quality 85, metadata stripped) to keep the example library small; the downloaded PNG was 1199×1312 and 2.5 MB.
