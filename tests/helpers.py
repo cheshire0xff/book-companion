@@ -99,6 +99,73 @@ PARTS_FILES = [
 ]
 
 
+def toc_labels(toc: Toc) -> list[str]:
+    """Every label of a table of contents, in reading order."""
+    labels: list[str] = []
+    for label, _, children in toc:
+        labels += [label, *toc_labels(children)]
+    return labels
+
+
+# The parts book with a contents page, as a converted book usually has
+CONTENTS_PARTS_TOC: Toc = [("Contents", "contents.xhtml", []), *PARTS_TOC]
+CONTENTS_PARTS_FILES = [
+    ("contents.xhtml", "".join(f"<p>{label}</p>" for label in toc_labels(PARTS_TOC))),
+    *PARTS_FILES,
+]
+
+
+def write(path: Path, text: str) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def make_volume(book_dir: Path, title: str, files: list[tuple[str, str]], toc: Toc) -> Path:
+    """A book folder as book-import leaves it: the EPUB, both conversions and metadata.md."""
+    make_book(book_dir, title, files, toc)
+    (book_dir / "source.epub").write_bytes(b"PK fake epub")
+    write(book_dir / "book.txt", "the plain-text copy\n")
+    write(book_dir / "metadata.md", f"# Book metadata\n\n- Title: {title}\n")
+    return book_dir
+
+
+def make_library(root: Path) -> Path:
+    """A complete, clean library: a series being read in volume 2, a finished standalone
+    book, entities, and one EPUB waiting in _incoming/.
+
+    The library check reports only that EPUB and one prompt waiting for its image.
+    """
+    series = root / "books" / "jane-doe" / "night-saga"
+    write(series / "reading-progress.md", progress("reading", volume="2", part="1", chapter="2"))
+    first = make_volume(series / "volumes" / "01-first-night", "First Night", FLAT_FILES,
+                        FLAT_TOC)
+    write(first / "chapters.md", "# First Night: chapter notes\n")
+    write(first / "reference.md", "# First Night: reference\n")
+    make_volume(series / "volumes" / "02-second-night", "Second Night", CONTENTS_PARTS_FILES,
+                CONTENTS_PARTS_TOC)
+
+    mira = series / "characters" / "mira-vale"
+    write(mira / "description.md", "# Mira Vale\n")
+    (mira / "pics").mkdir()
+    (mira / "pics" / "mira-portrait-v01.png").write_bytes(b"\x89PNG fake")
+    write(mira / "pics" / "mira-portrait-v01.prompt.md", "# Image prompt: Mira\n")
+    write(mira / "pics" / "mira-armored-v01.prompt.md", "# Image prompt: Mira, armored\n")
+    write(series / "locations" / "black-tower" / "description.md", "# The Black Tower\n")
+
+    lone = make_volume(root / "books" / "jane-doe" / "standalone" / "lone-star", "Lone Star",
+                       FLAT_FILES, FLAT_TOC)
+    write(lone / "reading-progress.md", progress("finished"))
+    write(lone / "chapters.md", "# Lone Star: chapter notes\n")
+    write(lone / "review.md", "# Review: Lone Star\n")
+    write(lone / "entities" / "characters" / "ash" / "description.md", "# Ash\n")
+
+    (root / "_incoming" / "epubs").mkdir(parents=True)
+    (root / "_incoming" / "epubs" / "third-night.epub").write_bytes(b"PK fake epub")
+    write(root / "_incoming" / "images" / ".gitkeep", "")
+    return root
+
+
 @pytest.fixture
 def flat(tmp_path: Path) -> Builder:
     """A standalone book with its own reading-progress.md."""

@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='utf-8'?>
+<package xmlns="http://www.idpf.org/2007/opf" version="2.0" unique-identifier="uuid_id">
+  <metadata xmlns:opf="http://www.idpf.org/2007/opf" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:calibre="http://calibre.kovidgoyal.net/2009/metadata">
+    <dc:language>en</dc:language>
+    <dc:title>A Map of Small Rains</dc:title>
+    <dc:creator opf:file-as="Quayle, Hesper" opf:role="aut">Hesper Quayle</dc:creator>
+    <dc:contributor opf:role="bkp">calibre (9.18.0) [http://calibre-ebook.com]</dc:contributor>
+    <dc:publisher>Book Companion examples</dc:publisher>
+    <dc:date>2026-11-09T23:00:00+00:00</dc:date>
+    <dc:rights>MIT License</dc:rights>
+    <meta name="calibre:timestamp" content="2026-11-10T00:48:56.951339+00:00"/>
+    <dc:identifier id="uuid_id" opf:scheme="uuid">553a0fea-035b-4404-98e9-9cb5cc1d658d</dc:identifier>
+  </metadata>
+  <manifest>
+    <item id="i0" href="OEBPS/text/title.xhtml" media-type="application/xhtml+xml"/>
+    <item id="i1" href="OEBPS/text/copyright.xhtml" media-type="application/xhtml+xml"/>
+    <item id="i2" href="OEBPS/text/contents.xhtml" media-type="application/xhtml+xml"/>
+    <item id="i3" href="OEBPS/text/part01.xhtml" media-type="application/xhtml+xml"/>
+    <item id="i4" href="OEBPS/text/part02.xhtml" media-type="application/xhtml+xml"/>
+    <item id="i5" href="OEBPS/text/part03.xhtml" media-type="application/xhtml+xml"/>
+    <item id="i6" href="OEBPS/text/part04.xhtml" media-type="application/xhtml+xml"/>
+    <item id="page_css" href="page_styles.css" media-type="text/css"/>
+    <item id="css" href="stylesheet.css" media-type="text/css"/>
+    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+  </manifest>
+  <spine toc="ncx">
+    <itemref idref="i0"/>
+    <itemref idref="i1"/>
+    <itemref idref="i2"/>
+    <itemref idref="i3"/>
+    <itemref idref="i4"/>
+    <itemref idref="i5"/>
+    <itemref idref="i6"/>
+  </spine>
+  <guide>
+    <reference type="toc" href="OEBPS/text/contents.xhtml" title="Contents"/>
+  </guide>
+</package>

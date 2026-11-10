@@ -19,9 +19,9 @@ from book_companion.core.cli import (
     run,
 )
 from book_companion.core.errors import BookError
-from book_companion.core.library import Target, Volume
 from book_companion.core.places import Position, location, parse_place, section_place
-from book_companion.core.structure import describe_chapter
+from book_companion.core.structure import summarize
+from book_companion.core.target import Target, Volume
 from book_companion.core.text import Match, compile_query, find_matches, highlight, snippet
 
 SEARCH_MAX_CHARS = 12000
@@ -218,36 +218,10 @@ def cmd_chapters(target: Target, args: argparse.Namespace) -> None:
 def _structure_report(volume: Volume, progress: str | None) -> list[str]:
     """Structure and progress of one volume, without any titles or text."""
     book = volume.book
-    keys = [(s.part, s.chapter) for s in book.sections if s.chapter is not None]
-    numbers = [chapter for _, chapter in keys]
-    duplicates = sorted({describe_chapter(n, p) for p, n in keys if keys.count((p, n)) > 1})
-    parts = sorted({p for p, _ in keys if p is not None})
-    restarts = book.numbering_restarts
-    gaps: list[str] = []
-    groups: list[int | None] = list(parts) or [None]
-    for part in groups:
-        values = sorted({n for p, n in keys if p == part or not parts})
-        if values:
-            gaps += [describe_chapter(n, part)
-                     for n in sorted(set(range(values[0], values[-1] + 1)) - set(values))]
-    unlocated = sum(1 for s in book.toc if s.number == 0)
-    empty = sum(1 for s in book.sections if not s.paragraphs)
-
-    warnings = []
-    if progress is None:
-        warnings.append("reading-progress.md is invalid")
-    if not numbers:
-        warnings.append("no table-of-contents labels carry chapter numbers; "
-                        "record progress with 'section:'")
-    if duplicates:
-        warnings.append("some chapter numbers repeat; record progress with 'section:'")
-    if gaps:
-        warnings.append("chapter numbering has gaps")
-    if unlocated or book.missing_files:
-        warnings.append("some table-of-contents items or spine files could not be located")
-    if not book.toc_pages:
-        warnings.append("no contents page detected; if the book has one, searches may "
-                        "match later chapter titles")
+    summary = summarize(book)
+    numbers, parts = summary.numbers, summary.parts
+    warnings = ["reading-progress.md is invalid"] if progress is None else []
+    warnings += summary.warnings
 
     lines = [
         f"  Sections located:             {len(book.sections)} of {len(book.toc)}",
@@ -255,11 +229,11 @@ def _structure_report(volume: Volume, progress: str | None) -> list[str]:
         + (f" ({min(numbers)}-{max(numbers)})" if numbers else ""),
         f"  Parts:                        {len(parts) or 'none'}"
         + ("; chapter numbering restarts in each part (places and progress need the part)"
-           if restarts else ""),
-        f"  Duplicate chapter numbers:    {', '.join(duplicates) or 'none'}",
-        f"  Gaps in chapter numbers:      {', '.join(gaps) or 'none'}",
+           if book.numbering_restarts else ""),
+        f"  Duplicate chapter numbers:    {', '.join(summary.duplicates) or 'none'}",
+        f"  Gaps in chapter numbers:      {', '.join(summary.gaps) or 'none'}",
         f"  Sections without a chapter:   {len(book.sections) - len(numbers)}",
-        f"  Sections without own text:    {empty}",
+        f"  Sections without own text:    {summary.empty}",
         f"  Contents pages excluded:      {len(book.toc_pages)}",
         f"  Unlisted spine files:         {book.unlisted_files} "
         "(attached to the preceding section)",

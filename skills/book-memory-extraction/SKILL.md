@@ -1,6 +1,6 @@
 ---
 name: book-memory-extraction
-description: "Use when the user has finished a book in their library and wants its book memory, a recap of a finished book, to condense an existing book memory, or to log a book memory's model and cost or the user's own check of it. Produces compact, spoiler-complete notes (chapters.md and reference.md in the book's folder, and chapters-condensed.md on request) for accurately recalling the story later, especially when continuing a series. Not for books still being read. Do not use for developing or modifying the Book Companion application or its scripts."
+description: "Use when the user has finished a book in their library and wants its book memory written (a recap of the whole book, saved in its folder), to condense an existing book memory, or to log a book memory's model and cost or the user's own check of it. Produces compact, spoiler-complete notes (chapters.md and reference.md in the book's folder, and chapters-condensed.md on request) for accurately recalling the story later, especially when continuing a series. Not for books still being read, nor for answering questions or recaps from an existing memory (book-companion does that). Do not use for developing or modifying the Book Companion application or its scripts."
 argument-hint: "[book directory]"
 user-invocable: true
 ---
@@ -13,7 +13,7 @@ Create a compact, information-dense reference that preserves what a reader may n
 
 1. Use the book's own text in the user's library. If the book is not in the library yet, import it first with the `book-import` skill. Do not substitute another edition, an online synopsis, or remembered plot details.
 2. Extract only a book the user has read: `reading-progress.md` shows it as `status: finished`, or it is an earlier volume of the series. If the user says they have finished but the progress disagrees, record it first (see "Updating reading progress" in the `book-companion` skill); otherwise ask. Never extract an unfinished book. While a book is being read, questions about it are answered by searching the text.
-3. Write two Markdown files in the book's folder, next to `book.txt`: `chapters.md` and `reference.md`. If either already exists, do not silently overwrite it; ask the user what to do.
+3. Write two Markdown files in the book's folder, next to `book.txt`: `chapters.md` and `reference.md`. If either already exists, do not silently overwrite it; ask the user what to do. If the user only wants to be reminded of the story and the memory exists, answer from it as the `book-companion` skill does (its section 1) instead.
 4. Do not alter the source book.
 5. Read the text with `book-search`, the library's tool for reading and searching converted books. `book-search --help`, and `--help` on each command, explain how to use it.
 6. If the source cannot be read with available tools, explain the limitation. Do not invent missing content.

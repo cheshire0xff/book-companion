@@ -12,10 +12,10 @@ from urllib.parse import quote
 
 from markdown_it import MarkdownIt
 
+from book_companion.core.layout import PROGRESS_FILE
 from book_companion.core.progress import Status
 from book_companion.view.layout import Crumb, Page
 from book_companion.view.scan import (
-    PROGRESS_FILE,
     Entity,
     Library,
     Series,

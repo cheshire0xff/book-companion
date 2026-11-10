@@ -14,6 +14,7 @@ dependencies = [
 book-search = "book_companion.search.cli:main"
 book-convert = "book_companion.convert.cli:main"
 book-view = "book_companion.view.cli:main"
+book-library = "book_companion.library.cli:main"
 
 [dependency-groups]
 dev = [
