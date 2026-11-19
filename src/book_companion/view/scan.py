@@ -12,15 +12,29 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from book_companion.core.errors import BookError
-from book_companion.core.progress import Progress, Status, parse_progress
+from book_companion.core.layout import (
+    BOOK_HTML,
+    BOOKS,
+    DESCRIPTION_FILE,
+    ENTITIES,
+    IMAGE_SUFFIXES,
+    METADATA_FILE,
+    PICS,
+    PROGRESS_FILE,
+    PROMPT_SUFFIX,
+    REVIEW_FILE,
+    SERIES_NOTE,
+    STANDALONE,
+    VOLUMES,
+    subdirs,
+    volume_number,
+)
+from book_companion.core.progress import Progress, parse_progress
 
-PROGRESS_FILE = "reading-progress.md"
-SERIES_NOTE = "series.md"
-NOTE_FILES = ("metadata.md", "review.md", "reference.md", "chapters.md", "chapters-condensed.md")
-SAFE_NOTES = frozenset({"metadata.md"})  # bibliographic facts and the memory log, never a spoiler
-IMAGE_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".webp", ".gif"})
-PROMPT_SUFFIX = ".prompt.md"
-NOT_CATEGORIES = frozenset({"volumes", "entities", "book-html"})
+# the notes a book's page links to, in this order
+NOTE_FILES =(METADATA_FILE, REVIEW_FILE, "reference.md", "chapters.md", "chapters-condensed.md")
+SAFE_NOTES = frozenset({METADATA_FILE})  # bibliographic facts and the memory log, never a spoiler
+NOT_CATEGORIES = frozenset({VOLUMES, ENTITIES, BOOK_HTML})
 
 
 @dataclass
@@ -89,23 +103,16 @@ def is_spoiler(volume: Volume, note: Path) -> bool:
 
 def scan(root: Path) -> Library:
     found: list[Series] = []
-    for author in _subdirs(root / "books"):
-        for directory in _subdirs(author):
-            if directory.name == "standalone":
-                found.extend(_series(book, standalone=True) for book in _subdirs(directory)
+    for author in subdirs(root / BOOKS):
+        for directory in subdirs(author):
+            if directory.name == STANDALONE:
+                found.extend(_series(book, standalone=True) for book in subdirs(directory)
                              if (book / PROGRESS_FILE).is_file()
-                             or (book / "metadata.md").is_file())
-            elif (directory / PROGRESS_FILE).is_file() or (directory / "volumes").is_dir():
+                             or (book / METADATA_FILE).is_file())
+            elif (directory / PROGRESS_FILE).is_file() or (directory / VOLUMES).is_dir():
                 found.append(_series(directory, standalone=False))
     found.sort(key=lambda s: (s.author.casefold(), s.title.casefold()))
     return Library(root, found)
-
-
-def _subdirs(directory: Path) -> list[Path]:
-    if not directory.is_dir():
-        return []
-    return sorted(path for path in directory.iterdir()
-                  if path.is_dir() and not path.name.startswith((".", "_")))
 
 
 def _read(path: Path) -> str:
@@ -114,7 +121,7 @@ def _read(path: Path) -> str:
 
 def _metadata(book_dir: Path) -> dict[str, str]:
     """The '- Key: value' lines of metadata.md, before its first '##' section."""
-    path = book_dir / "metadata.md"
+    path = book_dir / METADATA_FILE
     values: dict[str, str] = {}
     if not path.is_file():
         return values
@@ -133,22 +140,12 @@ def _heading(path: Path) -> str | None:
     return None
 
 
-def _fully_read(number: int | None, progress: Progress | None, standalone: bool) -> bool:
-    if progress is None:
-        return False
-    if standalone:
-        return progress.status is Status.FINISHED
-    if number is None or progress.volume is None:
-        return False
-    return number < progress.volume or (number == progress.volume
-                                      and progress.status is Status.FINISHED)
-
-
 def _volume(book_dir: Path, number: int | None, progress: Progress | None,
             standalone: bool) -> Volume:
     title = _metadata(book_dir).get("title") or slug_title(re.sub(r"^\d+-", "", book_dir.name))
     notes = [book_dir / name for name in NOTE_FILES if (book_dir / name).is_file()]
-    return Volume(book_dir, number, title, notes, _fully_read(number, progress, standalone))
+    read = progress is not None and progress.read_in_full(number, standalone=standalone)
+    return Volume(book_dir, number, title, notes, read)
 
 
 def _series(path: Path, standalone: bool) -> Series:
@@ -161,10 +158,8 @@ def _series(path: Path, standalone: bool) -> Series:
         volumes = [_volume(path, None, progress, standalone=True)]
     else:
         volumes = []
-        for book_dir in _subdirs(path / "volumes"):
-            prefix = re.match(r"(\d+)-", book_dir.name)
-            number = int(prefix.group(1)) if prefix else None
-            volumes.append(_volume(book_dir, number, progress, standalone=False))
+        for book_dir in subdirs(path / VOLUMES):
+            volumes.append(_volume(book_dir, volume_number(book_dir), progress, standalone=False))
         volumes.sort(key=lambda v: (v.number is None, v.number or 0, v.path.name))
 
     metadata = next((m for v in volumes if (m := _metadata(v.path))), {})
@@ -181,11 +176,11 @@ def _series(path: Path, standalone: bool) -> Series:
 
 def _categories(series_dir: Path) -> dict[str, list[Entity]]:
     categories: dict[str, list[Entity]] = {}
-    for base in (series_dir, series_dir / "entities"):
-        for category in _subdirs(base):
+    for base in (series_dir, series_dir / ENTITIES):
+        for category in subdirs(base):
             if category.name in NOT_CATEGORIES:
                 continue
-            entities = [entity for directory in _subdirs(category)
+            entities = [entity for directory in subdirs(category)
                         if (entity := _entity(directory, category.name))]
             if entities:
                 group = categories.setdefault(category.name, [])
@@ -195,8 +190,8 @@ def _categories(series_dir: Path) -> dict[str, list[Entity]]:
 
 
 def _entity(directory: Path, category: str) -> Entity | None:
-    description = directory / "description.md"
-    pics = directory / "pics"
+    description = directory / DESCRIPTION_FILE
+    pics = directory / PICS
     if not description.is_file() and not pics.is_dir():
         return None
     files = sorted((p for p in pics.iterdir() if p.is_file()), reverse=True) \

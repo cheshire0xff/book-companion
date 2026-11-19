@@ -103,7 +103,7 @@ Search efficiently:
 Before answering a question about the story, a character, a location, a faction, an object, or an image:
 
 1. Read the series' (or standalone book's) `reading-progress.md`, so you know the story point you are answering from.
-2. Use the tool for every story search and read. Do not grep or open `book.txt` or the `book-html/` chapter files directly for story questions; they contain the whole book.
+2. Use the tool for every search and read of the book's text. Do not grep or open `book.txt` or the `book-html/` chapter files directly for story questions; they contain the whole book.
 3. Read enough around a hit (`--context` or `read`) to understand it; do not rely on an isolated keyword match.
 4. If the tool reports a boundary error (invalid progress file, nothing completed, ambiguous chapter number), resolve it with the user. Do not work around it by reading the files directly.
 5. Going past recorded progress (`--all`, or a `--to` or place to read past it) requires `--allow-spoilers`. Add it only when the user explicitly authorized that for this request. Never use it to check whether a guess is correct.

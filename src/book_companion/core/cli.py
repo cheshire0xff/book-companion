@@ -15,7 +15,7 @@ from pathlib import Path
 
 from book_companion.core.boundary import Selection, coverage, progress_text
 from book_companion.core.errors import BookError
-from book_companion.core.library import Target, load_target
+from book_companion.core.target import Target, load_target
 
 CONCEPTS = """\
 places:

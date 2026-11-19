@@ -98,6 +98,51 @@ def describe_chapter(chapter: int, part: int | None) -> str:
     return f"part {part}, chapter {chapter}" if part is not None else f"chapter {chapter}"
 
 
+@dataclass(frozen=True)
+class StructureSummary:
+    """How a book's chapters are numbered and located: numbers only, no titles or text."""
+
+    numbers: tuple[int, ...]  # the chapter numbers, in reading order
+    parts: tuple[int, ...]  # the parts that hold numbered chapters
+    duplicates: tuple[str, ...]  # chapters numbered more than once, e.g. "chapter 5"
+    gaps: tuple[str, ...]  # chapter numbers skipped
+    unlocated: int  # table-of-contents items not found in the text
+    empty: int  # sections without text of their own
+    warnings: tuple[str, ...]  # what makes the book harder to search or record progress in
+
+
+def summarize(book: Book) -> StructureSummary:
+    keys = [(s.part, s.chapter) for s in book.sections if s.chapter is not None]
+    numbers = [chapter for _, chapter in keys]
+    duplicates = sorted({describe_chapter(n, p) for p, n in keys if keys.count((p, n)) > 1})
+    parts = sorted({p for p, _ in keys if p is not None})
+    gaps: list[str] = []
+    groups: list[int | None] = list(parts) or [None]
+    for part in groups:
+        values = sorted({n for p, n in keys if p == part or not parts})
+        if values:
+            gaps += [describe_chapter(n, part)
+                     for n in sorted(set(range(values[0], values[-1] + 1)) - set(values))]
+    unlocated = sum(1 for s in book.toc if s.number == 0)
+    empty = sum(1 for s in book.sections if not s.paragraphs)
+
+    warnings = []
+    if not numbers:
+        warnings.append("no table-of-contents labels carry chapter numbers; "
+                        "record progress with 'section:'")
+    if duplicates:
+        warnings.append("some chapter numbers repeat; record progress with 'section:'")
+    if gaps:
+        warnings.append("chapter numbering has gaps")
+    if unlocated or book.missing_files:
+        warnings.append("some table-of-contents items or spine files could not be located")
+    if not book.toc_pages:
+        warnings.append("no contents page detected; if the book has one, searches may "
+                        "match later chapter titles")
+    return StructureSummary(tuple(numbers), tuple(parts), tuple(duplicates), tuple(gaps),
+                            unlocated, empty, tuple(warnings))
+
+
 def find_chapter(book: Book, chapter: int, part: int | None) -> Section:
     hits = [s for s in book.sections
             if s.chapter == chapter and (part is None or s.part == part)]

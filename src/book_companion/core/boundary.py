@@ -6,10 +6,10 @@ import argparse
 from dataclasses import dataclass, replace
 
 from book_companion.core.errors import BookError
-from book_companion.core.library import Target, Volume
 from book_companion.core.places import END, Position, parse_place, resolve, section_place
 from book_companion.core.progress import Progress, Status
 from book_companion.core.structure import Book, Section, find_chapter
+from book_companion.core.target import Target, Volume
 
 
 def _completed(book: Book, progress: Progress) -> int | None:

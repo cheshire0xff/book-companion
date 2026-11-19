@@ -1,6 +1,6 @@
 ---
 name: book-review
-description: "Use when the user wants to write down what they thought of a book in their library that they have finished (or stopped reading for good): interview them one question at a time and write their thoughts, in their own words, into review.md in the book's folder, with an optional star rating. Also for adding to or revising an existing review, such as after a reread. Use it whenever the user wants to talk through, rate or record their opinion of a book, even if they don't say 'review'. Not for recapping the story or for the book memory, including checking or fixing the memory files (book-memory-extraction). Do not use for developing or modifying the Book Companion application or its scripts."
+description: "Use when the user wants to write down what they thought of a book in their library that they have finished (or stopped reading for good): interview them one question at a time and write their thoughts, in their own words, into review.md in the book's folder, with an optional star rating. Also for adding to or revising an existing review, such as after a reread. Use it whenever the user wants to talk through, rate or record their opinion of a book, even if they don't say 'review'. Not for recapping the story (book-companion) or for the book memory, including checking or fixing the memory files (book-memory-extraction). Do not use for developing or modifying the Book Companion application or its scripts."
 argument-hint: "[book or book directory]"
 user-invocable: true
 ---

@@ -1,8 +1,4 @@
-"""The strict front-matter block of reading-progress.md.
-
-The block is read line by line (so a repeated key is caught), and its values are
-validated by the `Progress` model.
-"""
+"""The strict front-matter block of reading-progress.md, validated by the `Progress` model."""
 
 from __future__ import annotations
 
@@ -12,9 +8,9 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Annotated, Self
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, ValidationError, model_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, model_validator
 
-from book_companion.core.errors import BookError, explain
+from book_companion.core.frontmatter import load_front_matter
 
 
 class Status(StrEnum):
@@ -67,32 +63,20 @@ class Progress(BaseModel):
             raise ValueError("part is only used together with chapter")
         return self
 
+    def read_in_full(self, volume: int | None, *, standalone: bool) -> bool:
+        """Whether a book is read to its end, so its memory and review are no spoilers.
+
+        volume: the series volume's number (None if its folder has no number prefix);
+        ignored for a standalone book.
+        """
+        if standalone:
+            return self.status is Status.FINISHED
+        if volume is None or self.volume is None:
+            return False
+        return volume < self.volume or (volume == self.volume
+                                        and self.status is Status.FINISHED)
+
 
 def parse_progress(path: Path) -> Progress:
     """Read the front-matter block at the top of reading-progress.md."""
-    if not path.is_file():
-        raise BookError(f"{path} is missing.")
-    lines = path.read_text(encoding="utf-8-sig").splitlines()
-    if not lines or lines[0].strip() != "---":
-        raise BookError(f"{path} must start with a '---' front-matter block "
-                        "(see the template in spoiler-rules.md).")
-    end = next((i for i in range(1, len(lines)) if lines[i].strip() == "---"), None)
-    if end is None:
-        raise BookError(f"{path}: the front-matter block is not closed with '---'.")
-
-    values: dict[str, str] = {}
-    for line_no, raw in enumerate(lines[1:end], start=2):
-        line = raw.split("#", 1)[0].strip()
-        if not line:
-            continue
-        name, sep, value = line.partition(":")
-        if not sep:
-            raise BookError(f"{path}:{line_no}: expected 'key: value'.")
-        key = name.strip().lower()
-        if key in values:
-            raise BookError(f"{path}:{line_no}: {key!r} is set twice.")
-        values[key] = value.strip()
-    try:
-        return Progress.model_validate(values)
-    except ValidationError as error:
-        raise explain(error, str(path)) from None
+    return load_front_matter(path, Progress, template="spoiler-rules.md")

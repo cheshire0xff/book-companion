@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/cheshire0xff/book-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/cheshire0xff/book-companion/actions/workflows/ci.yml)
 
-A spoiler-safe companion for your own EPUB library, run by an AI agent (Claude Code). The library is ordinary files and folders on your machine; this repository holds only the tools and skills, never any books. Five skills handle the work:
+A spoiler-safe companion for your own EPUB library, run by an AI agent (Claude Code). The library is ordinary files and folders on your machine; this repository holds the tools and skills, never your books. To see what a library looks like, or to try the tools before importing your own books, use the small example library in [`examples/`](examples/README.md). Five skills handle the work:
 
 | Skill | Use it for |
 | --- | --- |
@@ -19,7 +19,7 @@ You can also just ask in plain language; the agent picks the skill from its desc
 The tools and the library are separate. You install the plugin and the `book-search` command once, then work from your library folder.
 
 1. **Prerequisites:** [uv](https://docs.astral.sh/uv/) and [Calibre](https://calibre-ebook.com/) (its `ebook-convert` does the conversion). Both run on Windows, macOS and Linux; on Linux, make sure `ebook-convert` is on your PATH.
-2. **Install the commands** `book-search` (the spoiler-bounded search the skills use for story questions), `book-convert` (EPUB conversion) and `book-view` (a local viewer for your notes and images):
+2. **Install the commands** `book-search` (the spoiler-bounded search the skills use for story questions), `book-convert` (EPUB conversion), `book-library` (the library check) and `book-view` (a local viewer for your notes and images). Run the same command again to update them:
 
    ```shell
    uv tool install git+https://github.com/cheshire0xff/book-companion
@@ -65,8 +65,11 @@ Examples:
 - `What do we know about Valka's appearance so far?`
 - `Describe the city where Hadrian first arrives, using only what I've read.`
 - `Remind me what this faction is and where it has appeared.`
+- `I'm starting book 2. Remind me how book 1 ended.`
 
 The agent should check the reading checkpoint first, use the book text only through that boundary, and distinguish details stated in the book from inference. Do not rely on external wikis for story lore.
+
+For a book you've finished that has a [book memory](#book-memory), the agent starts from the memory. That makes recaps and who-is-who questions quick and cheap. It still checks the details and chapters it cites in the text, and searches the text for the volume you're reading now. It never opens the memory of a book your progress doesn't mark as read.
 
 The agent searches with `book-search`. Pointed at a series directory, it searches every volume of the series up to your recorded story point: earlier volumes fully, the current volume up to your boundary, later volumes not at all. It never returns text past that, including later chapter titles from a book's contents page. You can use it yourself too:
 
@@ -126,6 +129,23 @@ Pages are rendered from the files on every request, so reload after adding an im
 
 The "Palette" menu at the top right switches the color palette: Forest & Moss (the default), Midnight & Gold, Parchment & Oxblood, Graphite & Indigo, Velvet Plum or Leather. Your browser remembers the choice in a cookie; light or dark follows your system setting. Palettes are defined in `src/book_companion/view/themes.py`; adding one there adds it to the picker, and the tests check that its text stays readable.
 
+## Check the library
+
+Run `book-library check` in your library folder (or `book-library check path/to/library`). It walks the whole library and prints, for each series and standalone book, one line per problem: its path and what to do about it.
+
+```text
+## books/christopher-ruocchio/sun-eater
+  error    books/christopher-ruocchio/sun-eater/volumes/02-howling-dark/book.txt: missing. Convert the EPUB: book-convert …
+  warning  books/christopher-ruocchio/sun-eater/characters/Valka: not a lowercase, hyphen-separated slug. Rename it valka, if the user agrees.
+  waiting  books/christopher-ruocchio/sun-eater/characters/valka-onderra/pics/valka-armor-v01.prompt.md: a prompt prepared; its image is not imported yet. …
+```
+
+- **Errors** are things the tools or skills can't use as they are: missing files, a `book-html/` that `book-search` can't read, or reading progress that is invalid or names a chapter the book doesn't have. With an error, the command exits with status 1.
+- **Warnings** work but go against the library's layout: a book memory of a book not marked finished (a spoiler risk), an image without its prompt sidecar, or a folder name that isn't a slug.
+- **Waiting** lines are next steps, not problems: EPUBs and images in `_incoming/`, and prompts whose images aren't imported yet.
+
+`book-library check --help` lists every rule, by severity, and what isn't checked. The check only reads; it never moves, fixes or deletes anything. Like `book-search check`, it shows no titles or text. The skills run it after importing a book or an image.
+
 ## Where things live
 
 This repository (the plugin and the `book-search` package):
@@ -141,11 +161,13 @@ book-companion/
 │   ├── book-images/
 │   ├── book-memory-extraction/ # SKILL.md + condensing.md and memory-log.md
 │   └── book-review/
-├── pyproject.toml, uv.lock     # uv project; provides the `book-search`, `book-convert` and `book-view` commands
+├── examples/library/           # a small example library of invented books
+├── pyproject.toml, uv.lock     # uv project; provides the `book-search`, `book-convert`, `book-library` and `book-view` commands
 ├── src/book_companion/
-│   ├── core/                   # book structure, reading progress, spoiler boundary
+│   ├── core/                   # library layout, book structure, reading progress, spoiler boundary
 │   ├── search/                 # the book-search command
 │   ├── convert/                # the book-convert command
+│   ├── library/                # the book-library command (the library check)
 │   └── view/                   # the book-view command (local notes and image viewer)
 └── tests/
 ```

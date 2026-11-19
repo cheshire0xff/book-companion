@@ -127,4 +127,4 @@ Do not imply that ChatGPT sends the image directly into the workspace, and be ex
 8. If the user asks for a new version, preserve earlier versions.
 9. Do not silently edit, crop, re-encode, or otherwise modify the image. Perform image transformations only when requested.
 
-Report where the image and sidecar now live, any profile you created, and anything left unresolved (for example, a changed prompt whose final wording is unknown).
+Run `book-library check` and confirm it reports no problem for the image or its entity (see "Library check" in `../book-companion/library.md`). Report where the image and sidecar now live, any profile you created, and anything left unresolved (for example, a changed prompt whose final wording is unknown).

@@ -7,7 +7,6 @@ from pathlib import Path
 import pytest
 
 from book_companion.core.errors import BookError
-from book_companion.core.library import load_target
 from book_companion.core.places import (
     END,
     Place,
@@ -17,6 +16,7 @@ from book_companion.core.places import (
     resolve,
     section_place,
 )
+from book_companion.core.target import load_target
 from helpers import Builder, Toc, make_book, progress
 
 
